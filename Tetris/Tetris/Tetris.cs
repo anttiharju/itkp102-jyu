@@ -14,11 +14,9 @@ public class Tetris : PhysicsGame
     public int[,] staticArray;
     public int[,] dynamicArray;
 
-    //TODO: Jaetaan pelialue kolmeen eri taulukkoon:
-    //dynamicArray = täällä on se yksi tippuva muodostelma ja sitä voi kieritellä tässä
-    //staticArray = täällä ne jämähtäneet palikat ja poistetaan täydet rivit
-    //drawArray = se mikä lähetetään tuonne paint hommelliin että ruudulla näkyy kaikki ohjen
-    //              tähän vain siis yhdistetty nuo kaksi muuta taulukkoa
+    public bool spawn = false;
+
+    string[] shapes = { "long", "block", "t", "worm", "corner", "wormR", "cornerR" };
 
     public override void Begin()
     {
@@ -26,25 +24,93 @@ public class Tetris : PhysicsGame
         SetupLevel();
         SetupUpdateLoop();
 
-        dynamicArray[0, 23] = 2;
-        dynamicArray[1, 23] = 2;
-        dynamicArray[2, 23] = 2;
-        dynamicArray[3, 23] = 2;
-        dynamicArray[4, 23] = 2;
-        dynamicArray[5, 23] = 2;
-        dynamicArray[6, 23] = 2;
-        dynamicArray[7, 23] = 2;
-        dynamicArray[8, 23] = 2;
-        dynamicArray[9, 23] = 2;
+        Keyboard.Listen(Key.Right, ButtonState.Pressed, MoveRight, "Liiku oikealle");
+        Keyboard.Listen(Key.Left, ButtonState.Pressed, MoveLeft, "Liiku vasemmalle");
 
-        staticArray[5, 21] = 1;
-
+        SpawnRandomShape();
         drawArray = CombineArrays(staticArray, dynamicArray);
 
         PhoneBackButton.Listen(ConfirmExit, "Lopeta peli");
         Keyboard.Listen(Key.Escape, ButtonState.Pressed, ConfirmExit, "Lopeta peli");
     }
 
+    private void MoveLeft()
+    {
+        if (CanMove(staticArray, dynamicArray, 0, -1))
+        {
+            for (int x = 0; x < dynamicArray.GetLength(0); x++)
+            {
+                for (int y = 0; y < dynamicArray.GetLength(1); y++)
+                {
+                    if (x == dynamicArray.GetLength(0) - 1)
+                    {
+                        dynamicArray[x, y] = 0;
+                    }
+                    else
+                    {
+                        dynamicArray[x, y] = dynamicArray[x + 1, y];
+                    }
+                }
+            }
+        }
+        drawArray = CombineArrays(staticArray, dynamicArray);
+    }
+
+    private void MoveRight()
+    {
+        if (CanMove(staticArray, dynamicArray, 9, 1))
+        {
+            for (int x = dynamicArray.GetLength(0) - 1; x >= 0; x--)
+            {
+                for (int y = 0; y < dynamicArray.GetLength(1); y++)
+                {
+                    if (x == 0)
+                    {
+                        dynamicArray[x, y] = 0;
+                    }
+                    else
+                    {
+                        dynamicArray[x, y] = dynamicArray[x - 1, y];
+                    }
+                }
+            }
+        }
+        drawArray = CombineArrays(staticArray, dynamicArray);
+    }
+
+    public static bool CanMove(int[,] staticArray, int[,] dynamicArray, int vx, int direction)
+    {
+        //ei mennä reunojen yli
+        for (int i = 0; i < dynamicArray.GetLength(1); i++)
+        {
+            if (dynamicArray[vx, i] != 0)
+            {
+                return false;
+            }
+        }
+
+        for (int x = 0; x < dynamicArray.GetLength(0); x++)
+        {
+            for (int y = 0; y < dynamicArray.GetLength(1); y++)
+            {
+                if (dynamicArray[x, y] != 0)
+                {
+                    if (staticArray[x + direction, y] != 0)
+                    {
+                        return false;
+                    }
+                }
+            }
+        }
+
+        return true;
+    }
+
+    private void SpawnRandomShape()
+    {
+        string nextShape = shapes[RandomGen.NextInt(shapes.Length)];
+        SpawnShape(nextShape);
+    }
 
     /// <summary>
     /// Yhdistää kaksi taulukkoa uuteen taulukkoon
@@ -74,6 +140,22 @@ public class Tetris : PhysicsGame
     }
 
 
+    public static int[,] AddArrayToArray(int[,] bigArray, int[,] smallerArray)
+    {
+        int[,] tmp = new int[bigArray.GetLength(0), bigArray.GetLength(1)];
+
+        for (int x = 0; x < smallerArray.GetLength(0); x++)
+        {
+            for (int y = 0; y < smallerArray.GetLength(1); y++)
+            {
+                tmp[x, y] = smallerArray[x, y];
+            }
+        }
+
+        return tmp;
+    }
+
+
     /// <summary>
     /// Zoomataan kamera oikealla lailla
     /// ja laitetaan tausta mustaksi
@@ -81,8 +163,8 @@ public class Tetris : PhysicsGame
     private void SetupLevel()
     {
         Camera.Zoom(0.5);
-        Camera.X = 100;
-        Camera.Y = 500;
+        Camera.X = 224;
+        Camera.Y = 477;
         Level.BackgroundColor = Color.Black;
     }
 
@@ -94,7 +176,7 @@ public class Tetris : PhysicsGame
     {
         Timer t = new Timer
         {
-            Interval = 1.0
+            Interval = 1
         };
         t.Timeout += UpdateLoop;
         t.Start();
@@ -130,6 +212,12 @@ public class Tetris : PhysicsGame
     {
         drawArray = CombineArrays(staticArray, dynamicArray);
 
+        if (spawn)
+        {
+            SpawnRandomShape();
+            spawn = false;
+        }
+
         for (int x = 0; x < dynamicArray.GetLength(0); x++)
         {
             for (int y = 0; y < dynamicArray.GetLength(1); y++)
@@ -144,16 +232,81 @@ public class Tetris : PhysicsGame
                     {
                         ReverseMoveUp(x, y);
                         staticArray = CombineArrays(staticArray, dynamicArray);
+                        CheckForFullLines();
                         EmptyDynamicArray();
-                        /*
-                        staticArray[x, y] = dynamicArray[x, y];
-                        dynamicArray[x, y] = 0;
-                        */
+                        CheckIfLost();
                     }
                 }
             }
         }
+    }
 
+    private void CheckForFullLines()
+    {
+        List<int> linesToRemove = new List<int>();
+        for (int y = 0; y < staticArray.GetLength(1); y++)
+        {
+            bool full = true;
+            for (int x = 0; x < staticArray.GetLength(0); x++)
+            {
+                if (staticArray[x, y] == 0)
+                {
+                    full = false;
+                }
+            }
+            if (full)
+            {
+                DestroyLine(y);
+                MessageDisplay.Add("sait pisteen!");
+
+                linesToRemove.Add(y);
+            }
+        }
+
+        for (int i = 0; i < linesToRemove.Count; i++)
+        {
+            MoveDownFromY(linesToRemove[i] - i);
+        }
+    }
+
+    private void DestroyLine(int cy)
+    {
+        for (int x = 0; x < staticArray.GetLength(0); x++)
+        {
+            staticArray[x, cy] = 0;
+        }
+    }
+
+    private void MoveDownFromY(int cy)
+    {
+        for (int x = 0; x < staticArray.GetLength(0); x++)
+        {
+            for (int y = cy; y < staticArray.GetLength(1) - 1; y++)
+            {
+                staticArray[x, y] = staticArray[x, y + 1];
+            }
+        }
+    }
+
+    private void CheckIfLost()
+    {
+        bool lost = false;
+
+        for (int i = 0; i < 10; i++)
+        {
+            if (staticArray[i, 20] != 0)
+            {
+                lost = true;
+            }
+        }
+        if (!lost)
+        {
+            spawn = true;
+        }
+        else
+        {
+            MessageDisplay.Add("Hävisit pelin!");
+        }
     }
 
 
@@ -171,7 +324,7 @@ public class Tetris : PhysicsGame
         {
             for (int y = cy; y >= 0; y--)
             {
-                if(dynamicArray[x,y] != 0)
+                if (dynamicArray[x, y] != 0)
                 {
                     dynamicArray[x, y + 1] = dynamicArray[x, y];
                     dynamicArray[x, y] = 0;
@@ -190,7 +343,7 @@ public class Tetris : PhysicsGame
         {
             for (int y = 0; y < dynamicArray.GetLength(1); y++)
             {
-                dynamicArray[x,y] = 0;
+                dynamicArray[x, y] = 0;
             }
         }
     }
@@ -236,7 +389,6 @@ public class Tetris : PhysicsGame
     /// <summary>
     /// Piirtää pelikentän
     /// </summary>
-    /// TODO: Älä piirrä neljään ylimpään riviin harmaita neliöitä koska jos staticArrayssä on siellä palikoita, peli loppuu
     protected override void Paint(Canvas canvas)
     {
         int[,] draw = drawArray; //visuaalista debuggausta varten
@@ -250,10 +402,13 @@ public class Tetris : PhysicsGame
                 double tx = x * size;
                 double ty = y * size;
 
-                canvas.DrawLine(tx - dSize, ty - dSize, tx - dSize, ty + dSize + 1); //+1 pakollinen ettei jää puuttumaan nurkata pikseliä
-                canvas.DrawLine(tx + dSize, ty + dSize, tx + dSize, ty - dSize);
-                canvas.DrawLine(tx - dSize, ty + dSize, tx + dSize, ty + dSize);
-                canvas.DrawLine(tx + dSize, ty - dSize, tx - dSize, ty - dSize);
+                if (y < 20 || draw[x, y] != 0)
+                {
+                    canvas.DrawLine(tx - dSize, ty - dSize, tx - dSize, ty + dSize + 1);
+                    canvas.DrawLine(tx + dSize, ty + dSize, tx + dSize, ty - dSize);
+                    canvas.DrawLine(tx - dSize, ty + dSize, tx + dSize, ty + dSize);
+                    canvas.DrawLine(tx + dSize, ty - dSize, tx - dSize - 1, ty - dSize);
+                }
             }
         }
         base.Paint(canvas);
@@ -270,6 +425,67 @@ public class Tetris : PhysicsGame
         Color[] colors = { Color.DarkGray, Color.Cyan, Color.Yellow, Color.Purple, Color.Green, Color.Blue, Color.Red, Color.Orange };
 
         return colors[n];
+    }
+
+
+    //TODO: Joku aliohjelma ettei vie näin paljoa tilaa
+    private void SpawnShape(string shape = "")
+    {
+        if (shape == "long")
+        {
+            dynamicArray[5, 23] = 1;
+            dynamicArray[5, 22] = 1;
+            dynamicArray[5, 21] = 1;
+            dynamicArray[5, 20] = 1;
+        }
+
+        if (shape == "block")
+        {
+            dynamicArray[4, 22] = 2;
+            dynamicArray[5, 22] = 2;
+            dynamicArray[4, 21] = 2;
+            dynamicArray[5, 21] = 2;
+        }
+
+        if (shape == "t")
+        {
+            dynamicArray[4, 22] = 3;
+            dynamicArray[5, 22] = 3;
+            dynamicArray[4, 21] = 3;
+            dynamicArray[4, 23] = 3;
+        }
+
+        if (shape == "worm")
+        {
+            dynamicArray[5, 22] = 4;
+            dynamicArray[6, 22] = 4;
+            dynamicArray[4, 21] = 4;
+            dynamicArray[5, 21] = 4;
+        }
+
+        if (shape == "corner")
+        {
+            dynamicArray[3, 22] = 5;
+            dynamicArray[3, 21] = 5;
+            dynamicArray[4, 21] = 5;
+            dynamicArray[5, 21] = 5;
+        }
+
+        if (shape == "wormR")
+        {
+            dynamicArray[3, 22] = 6;
+            dynamicArray[4, 22] = 6;
+            dynamicArray[5, 21] = 6;
+            dynamicArray[4, 21] = 6;
+        }
+
+        if (shape == "cornerR")
+        {
+            dynamicArray[4, 21] = 7;
+            dynamicArray[5, 21] = 7;
+            dynamicArray[6, 21] = 7;
+            dynamicArray[6, 22] = 7;
+        }
     }
 
 

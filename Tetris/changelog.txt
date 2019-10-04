@@ -1,11 +1,21 @@
-4.10.2019
+4.10.2019 (2)
+palikoita tippuu jatkuvasti ja automaattisesti
+palikoita voi ohjata
+    huomasin että input lag aika jäätävä, pitääpä kysellä onko tässä toteutustavassa mitään järkeä, testimielessä nyt teen kuitenkin semi valmiiksi
+palikat eivät mene toisten palikoiden läpi tai reunan yli
+korjasin bugin missä palikat tulivat välillä väärän muotoisina (ajoitusjuttu, bool spawn liittyy tähän)
+nurkkabugi ilmestyi taas, piirtokoodia ei oltu muokattu, mutta korjasin sen toisen kerran lisäämällä - 1 yhteen kohtaan
+Inputlagi ongelma ratkaistu: piti laskea drawArray uudestaan kun painettiin nuolinäppäimiä
+Keskitin kameran oletusresoluutiolle: ideaalisti pitäisi vain piirtää itse pelikenttä heti keskelle (resoluutiolla ei saisi olla väliä)
+
+4.10.2019 (1)
 Korjattu kun drawline jättää nurkasta pikselin piirtämättä
 Piirretään tyhjät ruudut tumman harmaalla mukaan
 Loin setup aliohjelmia että pysyy begin siistinä
 olin vahingossa käyttänyt koodissa nimetystä table niin vaihdoin sen arrayksi (tiedä onko vieläkään oikein)
 nyt on static, dynamic ja draw arrayt joissa liikuttelen palikoita
-    dynamic sisältää tippuvan palikan
-    static ne palikat jotka on jo tippunut
+    dynamic sisältää tippuvan palikkamuodostelman
+    static ne palikat jotka on jo törmännyt
     draw on ainoastaan sitä varten että piirtyy kuva jossa kummatkin mukana
     oli ongelmallista pitää kaikki erillään kun ei saanut kai laittaa suoraan array = array koska silloin menee vain muistireferencillä
 palikkamuodostelmat pysähtyvät törmätessään muihin palikoihin tai pohjaan (dynamicArray -> staticArray)
@@ -15,14 +25,6 @@ Pohja valmiiksi (kommitoitu 4.10)
 
 yleistä todo
 
-jatkuvasti uusia palikoita tippumaan
-    tallenna palikkamuodot
-    
-pelin häviäminen
-
 ohjaus
     palikoiden kierto
     palikan lyönti alas
-    palikan tippumisen nopeutus (onko mahdollinen?)
-
-debugnäkymät (1,2,3) jokaiselle arraylle
