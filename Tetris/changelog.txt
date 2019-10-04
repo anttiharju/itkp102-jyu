@@ -1,0 +1,28 @@
+4.10.2019
+Korjattu kun drawline jättää nurkasta pikselin piirtämättä
+Piirretään tyhjät ruudut tumman harmaalla mukaan
+Loin setup aliohjelmia että pysyy begin siistinä
+olin vahingossa käyttänyt koodissa nimetystä table niin vaihdoin sen arrayksi (tiedä onko vieläkään oikein)
+nyt on static, dynamic ja draw arrayt joissa liikuttelen palikoita
+    dynamic sisältää tippuvan palikan
+    static ne palikat jotka on jo tippunut
+    draw on ainoastaan sitä varten että piirtyy kuva jossa kummatkin mukana
+    oli ongelmallista pitää kaikki erillään kun ei saanut kai laittaa suoraan array = array koska silloin menee vain muistireferencillä
+palikkamuodostelmat pysähtyvät törmätessään muihin palikoihin tai pohjaan (dynamicArray -> staticArray)
+
+3.10.2019
+Pohja valmiiksi (kommitoitu 4.10)
+
+yleistä todo
+
+jatkuvasti uusia palikoita tippumaan
+    tallenna palikkamuodot
+    
+pelin häviäminen
+
+ohjaus
+    palikoiden kierto
+    palikan lyönti alas
+    palikan tippumisen nopeutus (onko mahdollinen?)
+
+debugnäkymät (1,2,3) jokaiselle arraylle
