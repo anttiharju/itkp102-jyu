@@ -1,3 +1,16 @@
+5.10.2019
+palikat piirretään kokonaisina eikä ääriviivaruutuina
+palikoita voi käännellä! vaatii hienosäätöä
+systeemimuutos: en liikuta palikoita yksi kerrallaan alas vaan liikutan kaiken kerralla ja tarkistan kaiken kerralla
+    koodia on nyt vähemmän, se on siistimpää ja ei tarvitse kompensoida kaikkia erilaisia bugeja joita vanha systeemi aiheutti
+systeemiparannus: palikoilla ei tarvitse olla tallennettuna neljää eri kiertomuotoa vaan määrä voi olla mikä tahansa
+    voisi tehdä kai jotenkin geneerisesti, että tarvitsi vain yhden muodon per palika mutta näitä kuitenkin niin vähän niin vaiva ei iso
+tiedossa oleva bugi: palikoita voi käännellä toisten palikoiden sisään
+tippuvien palikoiden alla on varjo jonka tarkoitus auttaa niiden lyömisessä alas
+vaihdettu näppäinohjaus nuolinäppäimistä wasd + space
+palikan voi tuoda nopeammin alas pitämällä s pohjassa
+palikan voi läimäyttää alas painamalla space
+
 4.10.2019 (2)
 palikoita tippuu jatkuvasti ja automaattisesti
 palikoita voi ohjata
@@ -23,8 +36,8 @@ palikkamuodostelmat pysähtyvät törmätessään muihin palikoihin tai pohjaan 
 3.10.2019
 Pohja valmiiksi (kommitoitu 4.10)
 
-yleistä todo
 
-ohjaus
-    palikoiden kierto
-    palikan lyönti alas
+todo:
+
+bugikorjaus: palikat eivät saisi kääntyä toistensa sisään
+tahdin kiihtyminen
