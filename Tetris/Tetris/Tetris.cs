@@ -15,28 +15,290 @@ public class Tetris : PhysicsGame
     public int[,] dynamicArray;
 
     public bool spawn = false;
+    public int currentRotation = 0;
+    public int currentShape = 0;
 
-    string[] shapes = { "long", "block", "t", "worm", "corner", "wormR", "cornerR" };
+    public int forcedShape = 0;
+
+    public int[] shapeArraySize = { 3, 3, 4, 2, 3, 3, 3 };
+    public string[] shapeStartPositons = { "421", "321", "220", "421", "321", "421", "420" };
+    public string[] shapes = { "corner", "cornerR", "stick", "block", "worm", "wormR", "t" };
+
+    public string[] corner = { "000555005", "050050550", "500555000", "055050050" };
+    public string[] cornerR = { "777700000", "700700770", "000007777", "770070070" };
+    public string[] stick = { "0010001000100010", "0000000011110000" };
+    public string[] block = { "2222" };
+    public string[] worm = { "044440000", "400440040" };
+    public string[] wormR = { "660066000", "060660600" };
+    public string[] t = { "000333030", "030033030", "030333000", "030330030" };
+
+
+    List<string[]> shapeStrings = new List<string[]>();
 
     public override void Begin()
     {
+        shapeStrings = new List<string[]>() { corner, cornerR, stick, block, worm, wormR, t };
+
         SetupArrays();
         SetupLevel();
         SetupUpdateLoop();
 
-        Keyboard.Listen(Key.Right, ButtonState.Pressed, MoveRight, "Liiku oikealle");
-        Keyboard.Listen(Key.Left, ButtonState.Pressed, MoveLeft, "Liiku vasemmalle");
+        Keyboard.Listen(Key.D, ButtonState.Pressed, MoveRight, "Liiku oikealle");
+        Keyboard.Listen(Key.A, ButtonState.Pressed, MoveLeft, "Liiku vasemmalle");
+        Keyboard.Listen(Key.W, ButtonState.Pressed, Rotate, "Kieritä palikkaa");
+        Keyboard.Listen(Key.S, ButtonState.Down, FastDown, "Nopeasti alas");
+        Keyboard.Listen(Key.Space, ButtonState.Pressed, SlamDown, "Iske alas");
 
         SpawnRandomShape();
         drawArray = CombineArrays(staticArray, dynamicArray);
 
-        PhoneBackButton.Listen(ConfirmExit, "Lopeta peli");
-        Keyboard.Listen(Key.Escape, ButtonState.Pressed, ConfirmExit, "Lopeta peli");
+        PhoneBackButton.Listen(Exit, "Lopeta peli");
+        Keyboard.Listen(Key.Escape, ButtonState.Pressed, Exit, "Lopeta peli");
+    }
+
+
+    /// <summary>
+    /// Pelilogiikka pyörii täällä
+    /// </summary>
+    private void Update()
+    {
+        drawArray = CombineArrays(staticArray, dynamicArray);
+
+        if (spawn)
+        {
+            SpawnRandomShape();
+            spawn = false;
+        }
+
+        if (CanMoveWholeArray(dynamicArray, staticArray))
+        {
+            dynamicArray = MoveWholeArrayDown(dynamicArray);
+        }
+        else
+        {
+            staticArray = CombineArrays(staticArray, dynamicArray);
+            CheckForFullLines();
+            EmptyDynamicArray();
+            CheckIfLost();
+        }
+    }
+
+
+    /// <summary>
+    /// Piirtää pelikentän
+    /// </summary>
+    protected override void Paint(Canvas canvas)
+    {
+        int[,] draw = drawArray; //visuaalista debuggausta varten
+
+        for (int x = 0; x < draw.GetLength(0); x++)
+        {
+            for (int y = 0; y < draw.GetLength(1); y++)
+            {
+                canvas.BrushColor = NumberToColor(draw[x, y]);
+
+                double tx = x * size;
+                double ty = y * size;
+
+                if (y < 20 || draw[x, y] != 0)
+                {
+                    if (draw[x, y] == 0)
+                    {
+                        if (!IsAnythingAbove(x, y, dynamicArray) || IsAnythingAbove(x, y, staticArray))
+                        {
+                            canvas.DrawLine(tx - dSize, ty - dSize, tx - dSize, ty + dSize + 1);
+                            canvas.DrawLine(tx + dSize, ty + dSize, tx + dSize, ty - dSize);
+                            canvas.DrawLine(tx - dSize, ty + dSize, tx + dSize, ty + dSize);
+                            canvas.DrawLine(tx + dSize, ty - dSize, tx - dSize - 1, ty - dSize);
+                        }
+                    }
+                    else
+                    {
+                        for (int i = 0; i < size; i++)
+                        {
+                            canvas.DrawLine(tx - size / 2 + i, ty - size / 2, tx - size / 2 + i, ty + size / 2);
+                        }
+                    }
+                }
+            }
+        }
+
+        canvas.BrushColor = Color.DarkGray;
+        canvas.DrawLine(-25, -25, dynamicArray.GetLength(0) * 50 - 25, -25);
+        canvas.DrawLine(-25, -25, -25, (dynamicArray.GetLength(1) - 4) * 50 - 25);
+        canvas.DrawLine(dynamicArray.GetLength(0) * 50 - 25, -25, dynamicArray.GetLength(0) * 50 - 25, (dynamicArray.GetLength(1) - 4) * 50 - 25);
+
+        base.Paint(canvas);
+    }
+
+
+    /// <summary>
+    /// Palauttaa oikean värin oikealle numerolle
+    /// </summary>
+    /// <param name="n">Numero</param>
+    /// <returns>Numeroa vastaavan värin</returns>
+    public static Color NumberToColor(int n)
+    {
+        Color[] colors = { Color.DarkGray, Color.Cyan, Color.Yellow, Color.Purple, Color.Green, Color.Blue, Color.Red, Color.Orange };
+
+        return colors[n];
+    }
+
+
+    public static int[,] StringTo2DArray(string s, int size = 3)
+    {
+        int[,] array = new int[size, size];
+
+        for (int x = 0; x < array.GetLength(0); x++)
+        {
+            for (int y = 0; y < array.GetLength(1); y++)
+            {
+                array[x, y] = s[y * size + x] - 48; //array[x, y] = int.Parse(Char.ToString(s[y * size + x])); //Toimis kans mutta mitä turhia
+            }
+        }
+
+        return array;
+    }
+
+
+    public static Vector FindStartPos(int[,] array)
+    {
+        return new Vector(FindStartX(array), FindStartY(array));
+    }
+
+
+    public static int FindStartY(int[,] array)
+    {
+        int startY = -1;
+
+        for (int x = 0; x < array.GetLength(0); x++)
+        {
+            for (int y = 0; y < array.GetLength(1); y++)
+            {
+                if (array[x, y] != 0)
+                {
+                    startY = y;
+                    return startY;
+                }
+            }
+        }
+
+        return startY;
+    }
+
+
+    public static int FindStartX(int[,] array)
+    {
+        int startX = -1;
+
+        for (int y = 0; y < array.GetLength(1); y++)
+        {
+            for (int x = 0; x < array.GetLength(0); x++)
+            {
+                if (array[x, y] != 0)
+                {
+                    startX = x;
+                    return startX;
+                }
+            }
+        }
+
+        return startX;
+    }
+
+
+    public static int[,] AddArrayToArrayAtPosition(int[,] small, int[,] big, int startX, int startY)
+    {
+        int[,] final = new int[big.GetLength(0), big.GetLength(1)];
+
+        //Kopiodaan big -> final
+        for (int x = 0; x < small.GetLength(0); x++)
+        {
+            for (int y = 0; y < small.GetLength(1); y++)
+            {
+                final[x, y] = big[x, y];
+            }
+        }
+
+        //Vältetään out of index virheet (a godsend)
+        if (startX + small.GetLength(0) > big.GetLength(0))
+        {
+            startX = big.GetLength(0) - small.GetLength(0);
+        }
+
+        if (startY + small.GetLength(1) > big.GetLength(1))
+        {
+            startY = big.GetLength(1) - small.GetLength(1);
+        }
+
+        //Tehään se itse juttu
+        for (int x = 0; x < small.GetLength(0); x++)
+        {
+            for (int y = 0; y < small.GetLength(1); y++)
+            {
+                final[startX + x, startY + y] = small[x, y];
+            }
+        }
+
+        return final;
+    }
+
+    private void FastDown()
+    {
+        if (CanMoveWholeArray(dynamicArray, staticArray))
+        {
+            dynamicArray = MoveWholeArrayDown(dynamicArray);
+        }
+        else
+        {
+            staticArray = CombineArrays(staticArray, dynamicArray);
+            CheckForFullLines();
+            EmptyDynamicArray();
+            CheckIfLost();
+        }
+        drawArray = CombineArrays(staticArray, dynamicArray);
+    }
+
+    private void SlamDown()
+    {
+        while (true)
+        {
+            if (CanMoveWholeArray(dynamicArray, staticArray))
+            {
+                dynamicArray = MoveWholeArrayDown(dynamicArray);
+            }
+            else
+            {
+                staticArray = CombineArrays(staticArray, dynamicArray);
+                CheckForFullLines();
+                EmptyDynamicArray();
+                CheckIfLost();
+                break;
+            }
+        }
+        drawArray = CombineArrays(staticArray, dynamicArray);
+    }
+
+    private void Rotate()
+    {
+        Vector pos = FindStartPos(dynamicArray);
+        if (pos != new Vector(-1, -1))
+        {
+            EmptyDynamicArray();
+            currentRotation++;
+            if (currentRotation > shapeStrings[currentShape].Length - 1)
+            {
+                currentRotation = 0;
+            }
+            dynamicArray = AddArrayToArrayAtPosition(StringTo2DArray(shapeStrings[currentShape][currentRotation], shapeArraySize[currentShape]), dynamicArray, (int)pos.X, (int)pos.Y);
+
+            drawArray = CombineArrays(staticArray, dynamicArray);
+        }
     }
 
     private void MoveLeft()
     {
-        if (CanMove(staticArray, dynamicArray, 0, -1))
+        if (CanMoveHorizontally(staticArray, dynamicArray, 0, -1))
         {
             for (int x = 0; x < dynamicArray.GetLength(0); x++)
             {
@@ -58,7 +320,7 @@ public class Tetris : PhysicsGame
 
     private void MoveRight()
     {
-        if (CanMove(staticArray, dynamicArray, 9, 1))
+        if (CanMoveHorizontally(staticArray, dynamicArray, 9, 1))
         {
             for (int x = dynamicArray.GetLength(0) - 1; x >= 0; x--)
             {
@@ -78,7 +340,7 @@ public class Tetris : PhysicsGame
         drawArray = CombineArrays(staticArray, dynamicArray);
     }
 
-    public static bool CanMove(int[,] staticArray, int[,] dynamicArray, int vx, int direction)
+    public static bool CanMoveHorizontally(int[,] staticArray, int[,] dynamicArray, int vx, int direction)
     {
         //ei mennä reunojen yli
         for (int i = 0; i < dynamicArray.GetLength(1); i++)
@@ -106,11 +368,45 @@ public class Tetris : PhysicsGame
         return true;
     }
 
-    private void SpawnRandomShape()
+    public static bool CanMoveWholeArray(int[,] dynamicArray, int[,] staticArray)
     {
-        string nextShape = shapes[RandomGen.NextInt(shapes.Length)];
-        SpawnShape(nextShape);
+        for (int x = 0; x < dynamicArray.GetLength(0); x++)
+        {
+            for (int y = 0; y < dynamicArray.GetLength(1); y++)
+            {
+                if (dynamicArray[x, y] != 0)
+                {
+                    if (y == 0 || staticArray[x, y - 1] != 0)
+                    {
+                        return false;
+                    }
+                }
+            }
+        }
+
+        return true;
     }
+
+
+    public static int[,] MoveWholeArrayDown(int[,] dynamicArray)
+    {
+        int[,] newArray = new int[dynamicArray.GetLength(0), dynamicArray.GetLength(1)];
+
+        for (int x = 0; x < dynamicArray.GetLength(0); x++)
+        {
+            for (int y = 1; y < dynamicArray.GetLength(1); y++)
+            {
+                newArray[x, y] = 0;
+                if (dynamicArray[x, y] != 0)
+                {
+                    newArray[x, y - 1] = dynamicArray[x, y];
+                }
+            }
+        }
+
+        return newArray;
+    }
+
 
     /// <summary>
     /// Yhdistää kaksi taulukkoa uuteen taulukkoon
@@ -139,107 +435,6 @@ public class Tetris : PhysicsGame
         return c;
     }
 
-
-    public static int[,] AddArrayToArray(int[,] bigArray, int[,] smallerArray)
-    {
-        int[,] tmp = new int[bigArray.GetLength(0), bigArray.GetLength(1)];
-
-        for (int x = 0; x < smallerArray.GetLength(0); x++)
-        {
-            for (int y = 0; y < smallerArray.GetLength(1); y++)
-            {
-                tmp[x, y] = smallerArray[x, y];
-            }
-        }
-
-        return tmp;
-    }
-
-
-    /// <summary>
-    /// Zoomataan kamera oikealla lailla
-    /// ja laitetaan tausta mustaksi
-    /// </summary>
-    private void SetupLevel()
-    {
-        Camera.Zoom(0.5);
-        Camera.X = 224;
-        Camera.Y = 477;
-        Level.BackgroundColor = Color.Black;
-    }
-
-
-    /// <summary>
-    /// Tehään timeri updatelooppia varten
-    /// </summary>
-    private void SetupUpdateLoop()
-    {
-        Timer t = new Timer
-        {
-            Interval = 1
-        };
-        t.Timeout += UpdateLoop;
-        t.Start();
-    }
-
-
-    /// <summary>
-    /// Alustetaan taulukot käyttökuntoon
-    /// </summary>
-    private void SetupArrays()
-    {
-        staticArray = new int[drawArray.GetLength(0), drawArray.GetLength(1)];
-        dynamicArray = new int[drawArray.GetLength(0), drawArray.GetLength(1)];
-
-        for (int x = 0; x < drawArray.GetLength(0); x++)
-        {
-            for (int y = 0; y < drawArray.GetLength(1); y++)
-            {
-                drawArray[x, y] = 0;
-                staticArray[x, y] = 0;
-                dynamicArray[x, y] = 0;
-            }
-        }
-    }
-
-
-    /// <summary>
-    /// Täällä pelilogiikka kai pyörii
-    /// Jypelin kai pitäisi olla
-    /// event pohjanen tjsp. mutta ¯\_(ツ)_/¯
-    /// </summary>
-    private void UpdateLoop()
-    {
-        drawArray = CombineArrays(staticArray, dynamicArray);
-
-        if (spawn)
-        {
-            SpawnRandomShape();
-            spawn = false;
-        }
-
-        for (int x = 0; x < dynamicArray.GetLength(0); x++)
-        {
-            for (int y = 0; y < dynamicArray.GetLength(1); y++)
-            {
-                if (dynamicArray[x, y] != 0)
-                {
-                    if (CanMoveDown(staticArray, x, y))
-                    {
-                        dynamicArray = MoveDown(dynamicArray, x, y);
-                    }
-                    else
-                    {
-                        ReverseMoveUp(x, y);
-                        staticArray = CombineArrays(staticArray, dynamicArray);
-                        CheckForFullLines();
-                        EmptyDynamicArray();
-                        CheckIfLost();
-                    }
-                }
-            }
-        }
-    }
 
     private void CheckForFullLines()
     {
@@ -302,34 +497,11 @@ public class Tetris : PhysicsGame
         if (!lost)
         {
             spawn = true;
+            currentRotation = 0;
         }
         else
         {
             MessageDisplay.Add("Hävisit pelin!");
-        }
-    }
-
-
-    /// <summary>
-    /// Helpompi siirtää jo siirretyt palikat takas ylöspäin
-    /// kuin ensin katsoa voiko kaikkia palikoita siirtää,
-    /// tallentaa se johonkin ja sitten siirtää ne kaikki
-    /// </summary>
-    /// <param name="cx">missä kohtaa x oltiin menossa</param>
-    /// <param name="cy">missä kohtaa y oltiin menossa</param>
-    private void ReverseMoveUp(int cx, int cy)
-    {
-        cx--;
-        for (int x = cx; x >= 0; x--)
-        {
-            for (int y = cy; y >= 0; y--)
-            {
-                if (dynamicArray[x, y] != 0)
-                {
-                    dynamicArray[x, y + 1] = dynamicArray[x, y];
-                    dynamicArray[x, y] = 0;
-                }
-            }
         }
     }
 
@@ -348,145 +520,102 @@ public class Tetris : PhysicsGame
         }
     }
 
-
-    /// <summary>
-    /// Liikuttaa taulukossa olevaa lukua
-    /// y-akselilla alaspäin yhdellä
-    /// </summary>
-    /// <param name="array"></param>
-    /// <param name="x"></param>
-    /// <param name="y"></param>
-    /// <returns></returns>
-    public static int[,] MoveDown(int[,] array, int x, int y)
+    private void SpawnRandomShape()
     {
-        array[x, y - 1] = array[x, y];
-        array[x, y] = 0;
-        return array;
+        if (forcedShape == 0)
+        {
+            currentShape = RandomGen.NextInt(shapes.Length);
+        }
+        else
+        {
+            currentShape = forcedShape - 1;
+        }
+        string nextShape = shapes[currentShape];
+        SpawnSpecificShape(nextShape);
+    }
+
+
+
+    private void SpawnSpecificShape(string shape = "")
+    {
+        for (int i = 0; i < shapes.Length; i++)
+        {
+            if (shape == shapes[i])
+            {
+                int startX = SpawnStartPos(shapeStartPositons[i]);
+                int startY = SpawnStartPos(shapeStartPositons[i], false);
+                dynamicArray = AddArrayToArrayAtPosition(StringTo2DArray(shapeStrings[i][0], shapeArraySize[i]), dynamicArray, startX, startY);
+            }
+        }
+        drawArray = CombineArrays(staticArray, dynamicArray);
+    }
+
+
+    public static int SpawnStartPos(string s, bool firstNumber = true)
+    {
+        if (firstNumber)
+        {
+            return (int)s[0] - 48;
+        }
+        return (int)(s[1] - 48) * 10 + (s[2] - 48);
     }
 
 
     /// <summary>
-    /// Tarkistaa voiko kyseisessä koordinaatissa
-    /// olevan jutun siirtää yhtä alemmaksi
+    /// Zoomataan kamera oikealla lailla
+    /// ja laitetaan tausta mustaksi
     /// </summary>
-    /// <param name="array">taulukko</param>
-    /// <param name="x">d'oh</param>
-    /// <param name="y">d'oh</param>
-    /// <returns>voiko vai eikö</returns>
-    public static bool CanMoveDown(int[,] array, int x, int y)
+    private void SetupLevel()
     {
-        if (y > 0)
+        Camera.Zoom(0.5);
+        Camera.X = 224;
+        Camera.Y = 477;
+        Level.BackgroundColor = Color.Black;
+    }
+
+
+    /// <summary>
+    /// Tehään timeri updatelooppia varten
+    /// </summary>
+    private void SetupUpdateLoop()
+    {
+        Timer t = new Timer
         {
-            if (array[x, y - 1] == 0)
+            Interval = 0.3
+        };
+        t.Timeout += Update;
+        t.Start();
+    }
+
+
+    /// <summary>
+    /// Alustetaan taulukot käyttökuntoon
+    /// </summary>
+    private void SetupArrays()
+    {
+        staticArray = new int[drawArray.GetLength(0), drawArray.GetLength(1)];
+        dynamicArray = new int[drawArray.GetLength(0), drawArray.GetLength(1)];
+
+        for (int x = 0; x < drawArray.GetLength(0); x++)
+        {
+            for (int y = 0; y < drawArray.GetLength(1); y++)
+            {
+                drawArray[x, y] = 0;
+                staticArray[x, y] = 0;
+                dynamicArray[x, y] = 0;
+            }
+        }
+    }
+
+    public static bool IsAnythingAbove(int sx, int sy, int[,] array)
+    {
+        for (int y = sy; y < array.GetLength(1); y++)
+        {
+            if (array[sx, y] != 0)
             {
                 return true;
             }
         }
         return false;
     }
-
-
-    /// <summary>
-    /// Piirtää pelikentän
-    /// </summary>
-    protected override void Paint(Canvas canvas)
-    {
-        int[,] draw = drawArray; //visuaalista debuggausta varten
-
-        for (int x = 0; x < draw.GetLength(0); x++)
-        {
-            for (int y = 0; y < draw.GetLength(1); y++)
-            {
-                canvas.BrushColor = NumberToColor(draw[x, y]);
-
-                double tx = x * size;
-                double ty = y * size;
-
-                if (y < 20 || draw[x, y] != 0)
-                {
-                    canvas.DrawLine(tx - dSize, ty - dSize, tx - dSize, ty + dSize + 1);
-                    canvas.DrawLine(tx + dSize, ty + dSize, tx + dSize, ty - dSize);
-                    canvas.DrawLine(tx - dSize, ty + dSize, tx + dSize, ty + dSize);
-                    canvas.DrawLine(tx + dSize, ty - dSize, tx - dSize - 1, ty - dSize);
-                }
-            }
-        }
-        base.Paint(canvas);
-    }
-
-
-    /// <summary>
-    /// Palauttaa oikean värin oikealle numerolle
-    /// </summary>
-    /// <param name="n">Numero</param>
-    /// <returns>Numeroa vastaavan värin</returns>
-    public static Color NumberToColor(int n)
-    {
-        Color[] colors = { Color.DarkGray, Color.Cyan, Color.Yellow, Color.Purple, Color.Green, Color.Blue, Color.Red, Color.Orange };
-
-        return colors[n];
-    }
-
-
-    //TODO: Joku aliohjelma ettei vie näin paljoa tilaa
-    private void SpawnShape(string shape = "")
-    {
-        if (shape == "long")
-        {
-            dynamicArray[5, 23] = 1;
-            dynamicArray[5, 22] = 1;
-            dynamicArray[5, 21] = 1;
-            dynamicArray[5, 20] = 1;
-        }
-
-        if (shape == "block")
-        {
-            dynamicArray[4, 22] = 2;
-            dynamicArray[5, 22] = 2;
-            dynamicArray[4, 21] = 2;
-            dynamicArray[5, 21] = 2;
-        }
-
-        if (shape == "t")
-        {
-            dynamicArray[4, 22] = 3;
-            dynamicArray[5, 22] = 3;
-            dynamicArray[4, 21] = 3;
-            dynamicArray[4, 23] = 3;
-        }
-
-        if (shape == "worm")
-        {
-            dynamicArray[5, 22] = 4;
-            dynamicArray[6, 22] = 4;
-            dynamicArray[4, 21] = 4;
-            dynamicArray[5, 21] = 4;
-        }
-
-        if (shape == "corner")
-        {
-            dynamicArray[3, 22] = 5;
-            dynamicArray[3, 21] = 5;
-            dynamicArray[4, 21] = 5;
-            dynamicArray[5, 21] = 5;
-        }
-
-        if (shape == "wormR")
-        {
-            dynamicArray[3, 22] = 6;
-            dynamicArray[4, 22] = 6;
-            dynamicArray[5, 21] = 6;
-            dynamicArray[4, 21] = 6;
-        }
-
-        if (shape == "cornerR")
-        {
-            dynamicArray[4, 21] = 7;
-            dynamicArray[5, 21] = 7;
-            dynamicArray[6, 21] = 7;
-            dynamicArray[6, 22] = 7;
-        }
-    }
-
-
 }
