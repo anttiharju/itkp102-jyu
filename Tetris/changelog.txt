@@ -1,3 +1,10 @@
+6.10.2019
+Pelin voi aloittaa alusta painamalla r
+Korjasin bugin missä space näpyttämällä pelin saa jumiutumaan (ikuinen while loop)
+Palikoita ei voi enää kääntää toisten palikoiden sisään
+poistettu turhaa toistoa aliohjelmilla
+aloitin säätämään seuraavan palikan näyttöä oikeassa reunassa (kesken)
+
 5.10.2019
 palikat piirretään kokonaisina eikä ääriviivaruutuina
 palikoita voi käännellä! vaatii hienosäätöä
@@ -38,6 +45,11 @@ Pohja valmiiksi (kommitoitu 4.10)
 
 
 todo:
+dokumentaatio kuntoon, nimeäminen kuntoon. Kysy palautetta/neuvoa pääteohjauksessa?
+    TIMissä taisi olla jotain kurssin nimeämis/jäsentelykäytänteitä? taisi tulla sähköpostikin.
+ota pisteet talteen ja näytä ne jossain nurkassa
+hienosäädä palikoiden kääntymistä, nyt osalla palikoista mahdollista "lentää" karkuun
 
-bugikorjaus: palikat eivät saisi kääntyä toistensa sisään
-tahdin kiihtyminen
+mahdollisia todo:
+ota talteen nykyinen palikka vasemmalle
+näytä seuraava(t) palikka / palikat oikealle

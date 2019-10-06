@@ -7,6 +7,11 @@ using Jypeli.Widgets;
 
 public class Tetris : PhysicsGame
 {
+    public int forcedShape = 0;
+
+    public double updateInterval = 0.3;
+    public double freefallInterval = 0.05;
+
     public int size = 50;
     public int dSize = 22;
 
@@ -14,43 +19,55 @@ public class Tetris : PhysicsGame
     public int[,] staticArray;
     public int[,] dynamicArray;
 
+    public int[,] nextArray = new int[4, 4];
+
+    public bool freefall = false;
     public bool spawn = false;
     public int currentRotation = 0;
     public int currentShape = 0;
+    public int upcomingShape = 0;
 
-    public int forcedShape = 0;
+    public int[] shapeArraySize = { 4, 2, 3, 3, 3, 3, 3 };
+    public string[] shapeStartPositons = { "220", "421", "420", "321", "421", "421", "321" };
+    public string[] shapes = { "stick", "block", "t", "worm", "corner", "wormR", "cornerR" };
 
-    public int[] shapeArraySize = { 3, 3, 4, 2, 3, 3, 3 };
-    public string[] shapeStartPositons = { "421", "321", "220", "421", "321", "421", "420" };
-    public string[] shapes = { "corner", "cornerR", "stick", "block", "worm", "wormR", "t" };
-
-    public string[] corner = { "000555005", "050050550", "500555000", "055050050" };
-    public string[] cornerR = { "777700000", "700700770", "000007777", "770070070" };
     public string[] stick = { "0010001000100010", "0000000011110000" };
     public string[] block = { "2222" };
-    public string[] worm = { "044440000", "400440040" };
-    public string[] wormR = { "660066000", "060660600" };
     public string[] t = { "000333030", "030033030", "030333000", "030330030" };
-
+    public string[] worm = { "044440000", "400440040" };
+    public string[] corner = { "000555005", "050050550", "500555000", "055050050" };
+    public string[] wormR = { "660066000", "060660600" };
+    public string[] cornerR = { "777700000", "700700770", "000007777", "770070070" };
 
     List<string[]> shapeStrings = new List<string[]>();
 
     public override void Begin()
     {
-        shapeStrings = new List<string[]>() { corner, cornerR, stick, block, worm, wormR, t };
+        shapeStrings = new List<string[]>() { stick, block, t, worm, corner, wormR, cornerR };
 
         SetupArrays();
         SetupLevel();
-        SetupUpdateLoop();
+        SetupLoops();
 
         Keyboard.Listen(Key.D, ButtonState.Pressed, MoveRight, "Liiku oikealle");
         Keyboard.Listen(Key.A, ButtonState.Pressed, MoveLeft, "Liiku vasemmalle");
         Keyboard.Listen(Key.W, ButtonState.Pressed, Rotate, "Kieritä palikkaa");
-        Keyboard.Listen(Key.S, ButtonState.Down, FastDown, "Nopeasti alas");
+        Keyboard.Listen(Key.S, ButtonState.Pressed, FreefallOn, "Nopeasti alas");
+        Keyboard.Listen(Key.S, ButtonState.Released, FreefallOff, "");
+
         Keyboard.Listen(Key.Space, ButtonState.Pressed, SlamDown, "Iske alas");
+        Keyboard.Listen(Key.R, ButtonState.Pressed, Restart, "Aloita alusta");
+
+        if (forcedShape == 0)
+        {
+            upcomingShape = RandomGen.NextInt(shapes.Length);
+        }
+        else
+        {
+            upcomingShape = forcedShape;
+        }
 
         SpawnRandomShape();
-        drawArray = CombineArrays(staticArray, dynamicArray);
 
         PhoneBackButton.Listen(Exit, "Lopeta peli");
         Keyboard.Listen(Key.Escape, ButtonState.Pressed, Exit, "Lopeta peli");
@@ -70,6 +87,12 @@ public class Tetris : PhysicsGame
             spawn = false;
         }
 
+        MoveDown();
+        drawArray = CombineArrays(staticArray, dynamicArray);
+    }
+
+    private bool MoveDown()
+    {
         if (CanMoveWholeArray(dynamicArray, staticArray))
         {
             dynamicArray = MoveWholeArrayDown(dynamicArray);
@@ -78,11 +101,29 @@ public class Tetris : PhysicsGame
         {
             staticArray = CombineArrays(staticArray, dynamicArray);
             CheckForFullLines();
-            EmptyDynamicArray();
+            dynamicArray = SetArrayToZero(dynamicArray);
             CheckIfLost();
+            return true;
         }
+
+        return false;
     }
 
+    /// <summary>
+    /// Piti tehdä omaksi loopiksensa että voi vaihtaa nopeutta
+    /// </summary>
+    private void FreefallLoop()
+    {
+        if (freefall)
+        {
+            bool stop = MoveDown();
+            if (stop)
+            {
+                freefall = false;
+            }
+            drawArray = CombineArrays(staticArray, dynamicArray);
+        }
+    }
 
     /// <summary>
     /// Piirtää pelikentän
@@ -118,6 +159,30 @@ public class Tetris : PhysicsGame
                         {
                             canvas.DrawLine(tx - size / 2 + i, ty - size / 2, tx - size / 2 + i, ty + size / 2);
                         }
+                    }
+                }
+            }
+        }
+
+        //Show next block
+
+        int offsetX = size * (drawArray.GetLength(0) + 1);
+        int offsetY = size * (drawArray.GetLength(1) - (nextArray.GetLength(1) * 2));
+
+        for (int x = 0; x < nextArray.GetLength(0); x++)
+        {
+            for (int y = 0; y < nextArray.GetLength(1); y++)
+            {
+                canvas.BrushColor = NumberToColor(nextArray[x, y]);
+
+                double tx = x * size;
+                double ty = y * size;
+
+                if (nextArray[x, y] != 0)
+                {
+                    for (int i = 0; i < size; i++)
+                    {
+                        canvas.DrawLine(offsetX + (tx - size / 2 + i), offsetY + (ty - size / 2), offsetX + (tx - size / 2 + i), offsetY + (ty + size / 2));
                     }
                 }
             }
@@ -243,57 +308,134 @@ public class Tetris : PhysicsGame
         return final;
     }
 
-    private void FastDown()
+    private void Restart()
     {
-        if (CanMoveWholeArray(dynamicArray, staticArray))
-        {
-            dynamicArray = MoveWholeArrayDown(dynamicArray);
-        }
-        else
-        {
-            staticArray = CombineArrays(staticArray, dynamicArray);
-            CheckForFullLines();
-            EmptyDynamicArray();
-            CheckIfLost();
-        }
-        drawArray = CombineArrays(staticArray, dynamicArray);
+        dynamicArray = SetArrayToZero(dynamicArray);
+        staticArray = SetArrayToZero(staticArray);
+        SpawnRandomShape();
+    }
+
+    private void FreefallOn()
+    {
+        freefall = true;
+    }
+
+    private void FreefallOff()
+    {
+        freefall = false;
     }
 
     private void SlamDown()
     {
-        while (true)
+        if (FindStartX(dynamicArray) != -1) //pitää olla jotakin mitä liikuttaa alas tai jäädään jumiin
         {
-            if (CanMoveWholeArray(dynamicArray, staticArray))
+            while (true)
             {
-                dynamicArray = MoveWholeArrayDown(dynamicArray);
+                bool stop = MoveDown();
+                if (stop)
+                {
+                    break;
+                }
             }
-            else
-            {
-                staticArray = CombineArrays(staticArray, dynamicArray);
-                CheckForFullLines();
-                EmptyDynamicArray();
-                CheckIfLost();
-                break;
-            }
+            drawArray = CombineArrays(staticArray, dynamicArray);
         }
-        drawArray = CombineArrays(staticArray, dynamicArray);
     }
 
     private void Rotate()
     {
-        Vector pos = FindStartPos(dynamicArray);
-        if (pos != new Vector(-1, -1))
+        if (CanRotate(dynamicArray, staticArray, currentRotation, currentShape, shapeStrings, shapeArraySize))
         {
-            EmptyDynamicArray();
-            currentRotation++;
-            if (currentRotation > shapeStrings[currentShape].Length - 1)
-            {
-                currentRotation = 0;
-            }
-            dynamicArray = AddArrayToArrayAtPosition(StringTo2DArray(shapeStrings[currentShape][currentRotation], shapeArraySize[currentShape]), dynamicArray, (int)pos.X, (int)pos.Y);
-
+            var result = Rotate(dynamicArray, currentRotation, currentShape, shapeStrings, shapeArraySize);
+            dynamicArray = result.array;
+            currentRotation = result.currentRotation;
             drawArray = CombineArrays(staticArray, dynamicArray);
         }
+    }
+
+    public static bool CanRotate(int[,] rotationArray, int[,] staticArray, int cRotation, int cShape, List<string[]> shapeStrings, int[] shapeArraySize)
+    {
+        int[,] newArray = new int[rotationArray.GetLength(0), rotationArray.GetLength(1)];
+
+        for (int x = 0; x < newArray.GetLength(0); x++)
+        {
+            for (int y = 0; y < newArray.GetLength(0); y++)
+            {
+                newArray[x, y] = rotationArray[x, y];
+            }
+        }
+
+        var result = Rotate(newArray, cRotation, cShape, shapeStrings, shapeArraySize);
+        newArray = result.array;
+
+        if (ArraysOverlap(newArray, staticArray))
+        {
+            return false;
+        }
+
+        return true;
+    }
+
+    public struct RotationResult
+    {
+        public int[,] array;
+        public int currentRotation;
+    }
+
+    /// <summary>
+    /// Oli alunperin private voidissa niin sentakia pitää olla tämä struct pelleily mukana.
+    /// Nyt kun tehty tälläiseksi mistä tahansa kutsuttavaksi, on tosi helppo testata etukäteen
+    /// kääntää palikkaa ja katsoa meneekö se päällekkäin jo jonkun olemassaolevan palikan kanssa.
+    /// Toivonmukaan on myös yhteensopiva myöhemmin sen kanssa kun yritän estää palikoita "karkaamasta"
+    /// niitä pyöritellessä
+    /// </summary>
+    /// <param name="rotationArray"></param>
+    /// <param name="cRotation"></param>
+    /// <param name="cShape"></param>
+    /// <param name="shapeStrings"></param>
+    /// <param name="shapeArraySize"></param>
+    /// <returns></returns>
+    public static RotationResult Rotate(int[,] rotationArray, int cRotation, int cShape, List<string[]> shapeStrings, int[] shapeArraySize)
+    {
+        Vector pos = FindStartPos(rotationArray);
+        if (pos != new Vector(-1, -1))
+        {
+            rotationArray = SetArrayToZero(rotationArray);
+            cRotation++;
+            if (cRotation > shapeStrings[cShape].Length - 1)
+            {
+                cRotation = 0;
+            }
+            rotationArray = AddArrayToArrayAtPosition(StringTo2DArray(shapeStrings[cShape][cRotation], shapeArraySize[cShape]), rotationArray, (int)pos.X, (int)pos.Y);
+
+        }
+
+        var result = new RotationResult
+        {
+            array = rotationArray,
+            currentRotation = cRotation
+        };
+
+        return result;
+    }
+
+
+    public static bool ArraysOverlap(int[,] a, int[,] b)
+    {
+        for (int x = 0; x < a.GetLength(0); x++)
+        {
+            for (int y = 0; y < a.GetLength(1); y++)
+            {
+                if (a[x, y] != 0)
+                {
+                    if (b[x, y] != 0)
+                    {
+                        return true;
+                    }
+                }
+            }
+        }
+
+        return false;
     }
 
     private void MoveLeft()
@@ -439,6 +581,7 @@ public class Tetris : PhysicsGame
     private void CheckForFullLines()
     {
         List<int> linesToRemove = new List<int>();
+
         for (int y = 0; y < staticArray.GetLength(1); y++)
         {
             bool full = true;
@@ -505,36 +648,46 @@ public class Tetris : PhysicsGame
         }
     }
 
-
-    /// <summary>
-    /// Tehdään dynaamisesta taulukosta tyhjä
-    /// </summary>
-    private void EmptyDynamicArray()
+    public static int[,] SetArrayToZero(int[,] array)
     {
-        for (int x = 0; x < dynamicArray.GetLength(0); x++)
+        for (int x = 0; x < array.GetLength(0); x++)
         {
-            for (int y = 0; y < dynamicArray.GetLength(1); y++)
+            for (int y = 0; y < array.GetLength(1); y++)
             {
-                dynamicArray[x, y] = 0;
+                array[x, y] = 0;
             }
         }
+        return array;
     }
 
     private void SpawnRandomShape()
     {
         if (forcedShape == 0)
         {
-            currentShape = RandomGen.NextInt(shapes.Length);
+            currentShape = upcomingShape;
+            upcomingShape = RandomGen.NextInt(shapes.Length);
         }
         else
         {
             currentShape = forcedShape - 1;
+            upcomingShape = forcedShape - 1;
         }
-        string nextShape = shapes[currentShape];
-        SpawnSpecificShape(nextShape);
+        ShowNextBlock();
+
+        SpawnSpecificShape(shapes[currentShape]);
     }
 
-
+    private void ShowNextBlock()
+    {
+        for (int x = 0; x < nextArray.GetLength(0); x++)
+        {
+            for (int y = 0; y < nextArray.GetLength(1); y++)
+            {
+                nextArray[x, y] = upcomingShape + 1;
+            }
+        }
+        //nextArray = AddArrayToArrayAtPosition(StringTo2DArray(shapeStrings[upcomingShape][0], shapeArraySize[upcomingShape]), dynamicArray, 0, 0);
+    }
 
     private void SpawnSpecificShape(string shape = "")
     {
@@ -577,14 +730,21 @@ public class Tetris : PhysicsGame
     /// <summary>
     /// Tehään timeri updatelooppia varten
     /// </summary>
-    private void SetupUpdateLoop()
+    private void SetupLoops()
     {
-        Timer t = new Timer
+        Timer updateTimer = new Timer
         {
-            Interval = 0.3
+            Interval = updateInterval
         };
-        t.Timeout += Update;
-        t.Start();
+        updateTimer.Timeout += Update;
+        updateTimer.Start();
+
+        Timer freefallTimer = new Timer
+        {
+            Interval = freefallInterval
+        };
+        freefallTimer.Timeout += FreefallLoop;
+        freefallTimer.Start();
     }
 
 
@@ -603,6 +763,14 @@ public class Tetris : PhysicsGame
                 drawArray[x, y] = 0;
                 staticArray[x, y] = 0;
                 dynamicArray[x, y] = 0;
+            }
+        }
+
+        for (int x = 0; x < nextArray.GetLength(0); x++)
+        {
+            for (int y = 0; y < nextArray.GetLength(0); y++)
+            {
+                nextArray[x, y] = 0;
             }
         }
     }
