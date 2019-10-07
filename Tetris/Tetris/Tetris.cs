@@ -7,42 +7,45 @@ using Jypeli.Widgets;
 
 public class Tetris : PhysicsGame
 {
-    private int size = 50;
-    private int dSize = 22;
 
-    private int forcedShape = 0;
-    private int currentShape = 0;
-    private int upcomingShape = 0;
-    private int heldShape = 0;
-    private int currentRotation = 0;
+    //TODO: vähennä attribuutteja?
+    //TODO: private/public kuntoon, logiikka: saako kuka tahansa käyttää sitä
+    private int size = 50;  //ei pakollinen
+    private int dSize = 22; //ei pakollinen
 
-    private Timer updateTimer = new Timer { Interval = 0.3 };
-    private Timer freefallTimer = new Timer { Interval = 0.03 };
+    private int forcedShape = 0; //ei pakollinen
+    private int currentShape = 0; //on?
+    private int upcomingShape = 0; //on?
+    private int heldShape = 0; //on?
+    private int currentRotation = 0; //on?
 
-    private int[,] drawArray = new int[10, 24];
-    private int[,] staticArray;
-    private int[,] dynamicArray;
-    private int[,] upcomingArray = new int[4, 4];
-    private int[,] holdArray = new int[4, 4];
+    private Timer updateTimer = new Timer { Interval = 0.3 }; //ei pakollinen
+    private Timer freefallTimer = new Timer { Interval = 0.03 }; //ei pakolline
 
-    private bool freefall = false;
-    private bool spawn = false;
-    private bool canHold = true;
-    private bool lost = false;
+    private int[,] drawArray = new int[10, 24]; //on?
+    private int[,] staticArray; //on?
+    private int[,] dynamicArray; //on?
+    private int[,] upcomingArray = new int[4, 4]; //on?
+    private int[,] holdArray = new int[4, 4]; //on?
 
-    private int[] shapeArraySize = { 4, 2, 3, 3, 3, 3, 3 };
-    private string[] shapeStartPositons = { "220", "421", "420", "321", "421", "421", "321" };
-    private string[] shapes = { "stick", "block", "t", "worm", "corner", "wormR", "cornerR" };
+    private bool freefall = false; //on?
+    private bool spawn = false; //on?
+    private bool canHold = true; //on?
+    private bool lost = false; //on?
 
-    private string[] stick = { "0010001000100010", "0000000011110000" };
-    private string[] block = { "2222" };
-    private string[] t = { "000333030", "030033030", "030333000", "030330030" };
-    private string[] worm = { "044440000", "400440040" };
-    private string[] corner = { "000555005", "055050050", "500555000", "050050550" };
-    private string[] wormR = { "660066000", "060660600" };
-    private string[] cornerR = { "777700000", "700700770", "000007777", "770070070" };
+    private int[] shapeArraySize = { 4, 2, 3, 3, 3, 3, 3 };  //ehkä
+    private string[] shapeStartPositons = { "220", "421", "420", "321", "421", "421", "321" };  //ehkä
+    private string[] shapes = { "stick", "block", "t", "worm", "corner", "wormR", "cornerR" };  //ehkä
 
-    private List<string[]> shapeStrings = new List<string[]>();
+    private string[] stick = { "0010001000100010", "0000000011110000" };  //ehkä
+    private string[] block = { "2222" };  //ehkä
+    private string[] t = { "000333030", "030033030", "030333000", "030330030" };  //ehkä
+    private string[] worm = { "044440000", "400440040" };  //ehkä
+    private string[] corner = { "000555005", "055050050", "500555000", "050050550" };  //ehkä
+    private string[] wormR = { "660066000", "060660600" };  //ehkä
+    private string[] cornerR = { "777700000", "700700770", "000007777", "770070070" };  //ehkä
+
+    private List<string[]> shapeStrings = new List<string[]>(); //ehkä?
 
     public override void Begin()
     {
