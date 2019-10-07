@@ -1,3 +1,7 @@
+7.10.2019
+Tulevan palikan näkee oikealla
+Palikan voi ottaa talteen vasemmalle painamalla Q
+
 6.10.2019
 Pelin voi aloittaa alusta painamalla r
 Korjasin bugin missä space näpyttämällä pelin saa jumiutumaan (ikuinen while loop)
@@ -49,7 +53,7 @@ dokumentaatio kuntoon, nimeäminen kuntoon. Kysy palautetta/neuvoa pääteohjauk
     TIMissä taisi olla jotain kurssin nimeämis/jäsentelykäytänteitä? taisi tulla sähköpostikin.
 ota pisteet talteen ja näytä ne jossain nurkassa
 hienosäädä palikoiden kääntymistä, nyt osalla palikoista mahdollista "lentää" karkuun
-
-mahdollisia todo:
-ota talteen nykyinen palikka vasemmalle
-näytä seuraava(t) palikka / palikat oikealle
+näytä palikat siististi jonossa oikealla ja kolme kappaletta
+näytä siististi aseteltuna vasemmalla (1n ruudun väli kenttään)
+MoveLeft ja MoveRight pitäisi saada yhdistettyä MoveHorizontally
+    freefallin tyyliseks eli pohjassa pitämällä liikkuu jatkuvasti

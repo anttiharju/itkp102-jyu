@@ -7,25 +7,28 @@ using Jypeli.Widgets;
 
 public class Tetris : PhysicsGame
 {
-    public int forcedShape = 0;
-
-    public double updateInterval = 0.3;
-    public double freefallInterval = 0.05;
-
     public int size = 50;
     public int dSize = 22;
+
+    public int forcedShape = 0;
+    public int currentShape = 0;
+    public int upcomingShape = 0;
+    public int heldShape = 0;
+    public int currentRotation = 0;
+
+    public Timer updateTimer = new Timer { Interval = 0.3 };
+    public Timer freefallTimer = new Timer { Interval = 0.03 };
 
     public int[,] drawArray = new int[10, 24];
     public int[,] staticArray;
     public int[,] dynamicArray;
-
-    public int[,] nextArray = new int[4, 4];
+    public int[,] upcomingArray = new int[4, 4];
+    public int[,] holdArray = new int[4, 4];
 
     public bool freefall = false;
     public bool spawn = false;
-    public int currentRotation = 0;
-    public int currentShape = 0;
-    public int upcomingShape = 0;
+    public bool canHold = true;
+    public bool lost = false;
 
     public int[] shapeArraySize = { 4, 2, 3, 3, 3, 3, 3 };
     public string[] shapeStartPositons = { "220", "421", "420", "321", "421", "421", "321" };
@@ -35,7 +38,7 @@ public class Tetris : PhysicsGame
     public string[] block = { "2222" };
     public string[] t = { "000333030", "030033030", "030333000", "030330030" };
     public string[] worm = { "044440000", "400440040" };
-    public string[] corner = { "000555005", "050050550", "500555000", "055050050" };
+    public string[] corner = { "000555005", "055050050", "500555000", "050050550" };
     public string[] wormR = { "660066000", "060660600" };
     public string[] cornerR = { "777700000", "700700770", "000007777", "770070070" };
 
@@ -46,29 +49,21 @@ public class Tetris : PhysicsGame
         shapeStrings = new List<string[]>() { stick, block, t, worm, corner, wormR, cornerR };
 
         SetupArrays();
-        SetupLevel();
         SetupLoops();
+        SetupGame();
 
-        Keyboard.Listen(Key.D, ButtonState.Pressed, MoveRight, "Liiku oikealle");
-        Keyboard.Listen(Key.A, ButtonState.Pressed, MoveLeft, "Liiku vasemmalle");
         Keyboard.Listen(Key.W, ButtonState.Pressed, Rotate, "Kieritä palikkaa");
+        Keyboard.Listen(Key.A, ButtonState.Pressed, MoveLeft, "Liiku vasemmalle");
         Keyboard.Listen(Key.S, ButtonState.Pressed, FreefallOn, "Nopeasti alas");
         Keyboard.Listen(Key.S, ButtonState.Released, FreefallOff, "");
-
+        Keyboard.Listen(Key.D, ButtonState.Pressed, MoveRight, "Liiku oikealle");
         Keyboard.Listen(Key.Space, ButtonState.Pressed, SlamDown, "Iske alas");
+        Keyboard.Listen(Key.Q, ButtonState.Pressed, HoldUp, "Ota palikka talteen");
         Keyboard.Listen(Key.R, ButtonState.Pressed, Restart, "Aloita alusta");
 
-        if (forcedShape == 0)
-        {
-            upcomingShape = RandomGen.NextInt(shapes.Length);
-        }
-        else
-        {
-            upcomingShape = forcedShape;
-        }
+        SpawnNextShape();
 
-        SpawnRandomShape();
-
+        Keyboard.Listen(Key.F1, ButtonState.Pressed, ShowControlHelp, "");
         PhoneBackButton.Listen(Exit, "Lopeta peli");
         Keyboard.Listen(Key.Escape, ButtonState.Pressed, Exit, "Lopeta peli");
     }
@@ -79,11 +74,9 @@ public class Tetris : PhysicsGame
     /// </summary>
     private void Update()
     {
-        drawArray = CombineArrays(staticArray, dynamicArray);
-
         if (spawn)
         {
-            SpawnRandomShape();
+            SpawnNextShape();
             spawn = false;
         }
 
@@ -101,7 +94,7 @@ public class Tetris : PhysicsGame
         {
             staticArray = CombineArrays(staticArray, dynamicArray);
             CheckForFullLines();
-            dynamicArray = SetArrayToZero(dynamicArray);
+            dynamicArray = Set2DArray(dynamicArray);
             CheckIfLost();
             return true;
         }
@@ -128,22 +121,20 @@ public class Tetris : PhysicsGame
     /// <summary>
     /// Piirtää pelikentän
     /// </summary>
-    protected override void Paint(Canvas canvas)
+    protected override void Paint(Canvas canvas) //voiko näitä laittaa jotenkin aliohjelmiin?
     {
-        int[,] draw = drawArray; //visuaalista debuggausta varten
-
-        for (int x = 0; x < draw.GetLength(0); x++)
+        for (int x = 0; x < drawArray.GetLength(0); x++)
         {
-            for (int y = 0; y < draw.GetLength(1); y++)
+            for (int y = 0; y < drawArray.GetLength(1); y++)
             {
-                canvas.BrushColor = NumberToColor(draw[x, y]);
+                canvas.BrushColor = NumberToColor(drawArray[x, y]);
 
                 double tx = x * size;
                 double ty = y * size;
 
-                if (y < 20 || draw[x, y] != 0)
+                if (y < 20 || drawArray[x, y] != 0)
                 {
-                    if (draw[x, y] == 0)
+                    if (drawArray[x, y] == 0)
                     {
                         if (!IsAnythingAbove(x, y, dynamicArray) || IsAnythingAbove(x, y, staticArray))
                         {
@@ -164,21 +155,20 @@ public class Tetris : PhysicsGame
             }
         }
 
-        //Show next block
-
+        //Tulevat palikat
         int offsetX = size * (drawArray.GetLength(0) + 1);
-        int offsetY = size * (drawArray.GetLength(1) - (nextArray.GetLength(1) * 2));
+        int offsetY = size * (drawArray.GetLength(1) - (upcomingArray.GetLength(1) * 2));
 
-        for (int x = 0; x < nextArray.GetLength(0); x++)
+        for (int x = 0; x < upcomingArray.GetLength(0); x++)
         {
-            for (int y = 0; y < nextArray.GetLength(1); y++)
+            for (int y = 0; y < upcomingArray.GetLength(1); y++)
             {
-                canvas.BrushColor = NumberToColor(nextArray[x, y]);
+                canvas.BrushColor = NumberToColor(upcomingArray[x, y]);
 
                 double tx = x * size;
                 double ty = y * size;
 
-                if (nextArray[x, y] != 0)
+                if (upcomingArray[x, y] != 0)
                 {
                     for (int i = 0; i < size; i++)
                     {
@@ -188,6 +178,31 @@ public class Tetris : PhysicsGame
             }
         }
 
+        //Tallessa oleva palikka
+
+        offsetX = -size * (holdArray.GetLength(0) + 1);
+        offsetY = size * (drawArray.GetLength(1) - (holdArray.GetLength(1) * 2));
+
+        for (int x = 0; x < holdArray.GetLength(0); x++)
+        {
+            for (int y = 0; y < holdArray.GetLength(1); y++)
+            {
+                canvas.BrushColor = NumberToColor(holdArray[x, y]);
+
+                double tx = x * size;
+                double ty = y * size;
+
+                if (holdArray[x, y] != 0)
+                {
+                    for (int i = 0; i < size; i++)
+                    {
+                        canvas.DrawLine(offsetX + (tx - size / 2 + i), offsetY + (ty - size / 2), offsetX + (tx - size / 2 + i), offsetY + (ty + size / 2));
+                    }
+                }
+            }
+        }
+
+        //Reunat
         canvas.BrushColor = Color.DarkGray;
         canvas.DrawLine(-25, -25, dynamicArray.GetLength(0) * 50 - 25, -25);
         canvas.DrawLine(-25, -25, -25, (dynamicArray.GetLength(1) - 4) * 50 - 25);
@@ -310,9 +325,12 @@ public class Tetris : PhysicsGame
 
     private void Restart()
     {
-        dynamicArray = SetArrayToZero(dynamicArray);
-        staticArray = SetArrayToZero(staticArray);
-        SpawnRandomShape();
+        lost = false;
+        dynamicArray = Set2DArray(dynamicArray);
+        staticArray = Set2DArray(staticArray);
+        holdArray = Set2DArray(holdArray);
+        heldShape = 0;
+        SpawnNextShape();
     }
 
     private void FreefallOn()
@@ -323,6 +341,33 @@ public class Tetris : PhysicsGame
     private void FreefallOff()
     {
         freefall = false;
+    }
+
+    private void HoldUp()
+    {
+        if (canHold && !lost)
+        {
+            int nextShape = 0;
+            bool update = true;
+
+            if (heldShape == 0)
+            {
+                heldShape = currentShape;
+                holdArray = AddArrayToArrayAtPosition(StringTo2DArray(shapeStrings[heldShape][0], shapeArraySize[heldShape]), holdArray, 0, 0);
+            }
+            else
+            {
+                nextShape = heldShape;
+                heldShape = currentShape;
+                holdArray = AddArrayToArrayAtPosition(StringTo2DArray(shapeStrings[heldShape][0], shapeArraySize[heldShape]), holdArray, 0, 0);
+                currentShape = nextShape;
+                update = false;
+            }
+
+            dynamicArray = Set2DArray(dynamicArray);
+            SpawnNextShape(nextShape, update);
+            canHold = false;
+        }
     }
 
     private void SlamDown()
@@ -399,7 +444,7 @@ public class Tetris : PhysicsGame
         Vector pos = FindStartPos(rotationArray);
         if (pos != new Vector(-1, -1))
         {
-            rotationArray = SetArrayToZero(rotationArray);
+            rotationArray = Set2DArray(rotationArray);
             cRotation++;
             if (cRotation > shapeStrings[cShape].Length - 1)
             {
@@ -628,16 +673,16 @@ public class Tetris : PhysicsGame
 
     private void CheckIfLost()
     {
-        bool lost = false;
+        bool didLose = false;
 
         for (int i = 0; i < 10; i++)
         {
             if (staticArray[i, 20] != 0)
             {
-                lost = true;
+                didLose = true;
             }
         }
-        if (!lost)
+        if (!didLose)
         {
             spawn = true;
             currentRotation = 0;
@@ -645,48 +690,48 @@ public class Tetris : PhysicsGame
         else
         {
             MessageDisplay.Add("Hävisit pelin!");
+            lost = true;
         }
     }
 
-    public static int[,] SetArrayToZero(int[,] array)
+    public static int[,] Set2DArray(int[,] array, int toWhat = 0)
     {
         for (int x = 0; x < array.GetLength(0); x++)
         {
             for (int y = 0; y < array.GetLength(1); y++)
             {
-                array[x, y] = 0;
+                array[x, y] = toWhat;
             }
         }
         return array;
     }
 
-    private void SpawnRandomShape()
+    private void SpawnNextShape(int specificShape = 0, bool updateUpcomingArray = true)
     {
-        if (forcedShape == 0)
+
+        if (specificShape != 0)
         {
-            currentShape = upcomingShape;
-            upcomingShape = RandomGen.NextInt(shapes.Length);
+            currentShape = specificShape;
         }
-        else
+
+        if (updateUpcomingArray)
         {
-            currentShape = forcedShape - 1;
-            upcomingShape = forcedShape - 1;
+            if (forcedShape == 0)
+            {
+                currentShape = upcomingShape;
+                upcomingShape = RandomGen.NextInt(shapes.Length);
+            }
+            else
+            {
+                currentShape = forcedShape - 1;
+                upcomingShape = forcedShape - 1;
+            }
+
+            upcomingArray = AddArrayToArrayAtPosition(StringTo2DArray(shapeStrings[upcomingShape][0], shapeArraySize[upcomingShape]), upcomingArray, 0, 0);
         }
-        ShowNextBlock();
 
         SpawnSpecificShape(shapes[currentShape]);
-    }
-
-    private void ShowNextBlock()
-    {
-        for (int x = 0; x < nextArray.GetLength(0); x++)
-        {
-            for (int y = 0; y < nextArray.GetLength(1); y++)
-            {
-                nextArray[x, y] = upcomingShape + 1;
-            }
-        }
-        //nextArray = AddArrayToArrayAtPosition(StringTo2DArray(shapeStrings[upcomingShape][0], shapeArraySize[upcomingShape]), dynamicArray, 0, 0);
+        canHold = true;
     }
 
     private void SpawnSpecificShape(string shape = "")
@@ -718,12 +763,21 @@ public class Tetris : PhysicsGame
     /// Zoomataan kamera oikealla lailla
     /// ja laitetaan tausta mustaksi
     /// </summary>
-    private void SetupLevel()
+    private void SetupGame()
     {
         Camera.Zoom(0.5);
         Camera.X = 224;
         Camera.Y = 477;
         Level.BackgroundColor = Color.Black;
+
+        if (forcedShape == 0)
+        {
+            upcomingShape = RandomGen.NextInt(shapes.Length);
+        }
+        else
+        {
+            upcomingShape = forcedShape;
+        }
     }
 
 
@@ -732,17 +786,9 @@ public class Tetris : PhysicsGame
     /// </summary>
     private void SetupLoops()
     {
-        Timer updateTimer = new Timer
-        {
-            Interval = updateInterval
-        };
         updateTimer.Timeout += Update;
         updateTimer.Start();
 
-        Timer freefallTimer = new Timer
-        {
-            Interval = freefallInterval
-        };
         freefallTimer.Timeout += FreefallLoop;
         freefallTimer.Start();
     }
@@ -756,23 +802,11 @@ public class Tetris : PhysicsGame
         staticArray = new int[drawArray.GetLength(0), drawArray.GetLength(1)];
         dynamicArray = new int[drawArray.GetLength(0), drawArray.GetLength(1)];
 
-        for (int x = 0; x < drawArray.GetLength(0); x++)
-        {
-            for (int y = 0; y < drawArray.GetLength(1); y++)
-            {
-                drawArray[x, y] = 0;
-                staticArray[x, y] = 0;
-                dynamicArray[x, y] = 0;
-            }
-        }
-
-        for (int x = 0; x < nextArray.GetLength(0); x++)
-        {
-            for (int y = 0; y < nextArray.GetLength(0); y++)
-            {
-                nextArray[x, y] = 0;
-            }
-        }
+        drawArray = Set2DArray(drawArray);
+        staticArray = Set2DArray(staticArray);
+        dynamicArray = Set2DArray(dynamicArray);
+        upcomingArray = Set2DArray(upcomingArray);
+        holdArray = Set2DArray(holdArray);
     }
 
     public static bool IsAnythingAbove(int sx, int sy, int[,] array)
