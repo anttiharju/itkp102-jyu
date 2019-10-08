@@ -2,6 +2,8 @@
 Nuolinäppäimet toimii taas wasdin lisäksi
 Stickin kiertyminen on kivempi nyt
 
+Holdin pitäisi olla nyt bugiton (ajoitusbugi ja huono alustus korjattu)
+
 7.10.2019 (2)
 Palikkojen kiertämistä hiottu (ei voi lentää karkuun)
 Holdissa luultavasti aiemmin toisessa paikkaa ollut ajoitusbugi jonka takia tulee todella harvoin väärä palikka koska update luo uuden palikan sen päälle
