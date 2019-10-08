@@ -4,13 +4,13 @@ Stickin kiertyminen on kivempi nyt
 
 Holdin pitäisi olla nyt bugiton (ajoitusbugi ja huono alustus korjattu)
 
-7.10.2019 (2)
+7.10.2019
+Tulevan palikan näkee oikealla
+Palikan voi ottaa talteen vasemmalle painamalla Q
+
 Palikkojen kiertämistä hiottu (ei voi lentää karkuun)
 Holdissa luultavasti aiemmin toisessa paikkaa ollut ajoitusbugi jonka takia tulee todella harvoin väärä palikka koska update luo uuden palikan sen päälle
 
-7.10.2019 (1)
-Tulevan palikan näkee oikealla
-Palikan voi ottaa talteen vasemmalle painamalla Q
 
 6.10.2019
 Pelin voi aloittaa alusta painamalla r
@@ -18,6 +18,7 @@ Korjasin bugin missä space näpyttämällä pelin saa jumiutumaan (ikuinen whil
 Palikoita ei voi enää kääntää toisten palikoiden sisään
 poistettu turhaa toistoa aliohjelmilla
 aloitin säätämään seuraavan palikan näyttöä oikeassa reunassa (kesken)
+
 
 5.10.2019
 palikat piirretään kokonaisina eikä ääriviivaruutuina
@@ -32,17 +33,8 @@ vaihdettu näppäinohjaus nuolinäppäimistä wasd + space
 palikan voi tuoda nopeammin alas pitämällä s pohjassa
 palikan voi läimäyttää alas painamalla space
 
-4.10.2019 (2)
-palikoita tippuu jatkuvasti ja automaattisesti
-palikoita voi ohjata
-    huomasin että input lag aika jäätävä, pitääpä kysellä onko tässä toteutustavassa mitään järkeä, testimielessä nyt teen kuitenkin semi valmiiksi
-palikat eivät mene toisten palikoiden läpi tai reunan yli
-korjasin bugin missä palikat tulivat välillä väärän muotoisina (ajoitusjuttu, bool spawn liittyy tähän)
-nurkkabugi ilmestyi taas, piirtokoodia ei oltu muokattu, mutta korjasin sen toisen kerran lisäämällä - 1 yhteen kohtaan
-Inputlagi ongelma ratkaistu: piti laskea drawArray uudestaan kun painettiin nuolinäppäimiä
-Keskitin kameran oletusresoluutiolle: ideaalisti pitäisi vain piirtää itse pelikenttä heti keskelle (resoluutiolla ei saisi olla väliä)
 
-4.10.2019 (1)
+4.10.2019
 Korjattu kun drawline jättää nurkasta pikselin piirtämättä
 Piirretään tyhjät ruudut tumman harmaalla mukaan
 Loin setup aliohjelmia että pysyy begin siistinä
@@ -54,6 +46,16 @@ nyt on static, dynamic ja draw arrayt joissa liikuttelen palikoita
     oli ongelmallista pitää kaikki erillään kun ei saanut kai laittaa suoraan array = array koska silloin menee vain muistireferencillä
 palikkamuodostelmat pysähtyvät törmätessään muihin palikoihin tai pohjaan (dynamicArray -> staticArray)
 
+palikoita tippuu jatkuvasti ja automaattisesti
+palikoita voi ohjata
+    huomasin että input lag aika jäätävä, pitääpä kysellä onko tässä toteutustavassa mitään järkeä, testimielessä nyt teen kuitenkin semi valmiiksi
+palikat eivät mene toisten palikoiden läpi tai reunan yli
+korjasin bugin missä palikat tulivat välillä väärän muotoisina (ajoitusjuttu, bool spawn liittyy tähän)
+nurkkabugi ilmestyi taas, piirtokoodia ei oltu muokattu, mutta korjasin sen toisen kerran lisäämällä - 1 yhteen kohtaan
+Inputlagi ongelma ratkaistu: piti laskea drawArray uudestaan kun painettiin nuolinäppäimiä
+Keskitin kameran oletusresoluutiolle: ideaalisti pitäisi vain piirtää itse pelikenttä heti keskelle (resoluutiolla ei saisi olla väliä)
+
+
 3.10.2019
 Pohja valmiiksi (kommitoitu 4.10)
 
@@ -62,8 +64,7 @@ todo:
 dokumentaatio kuntoon, nimeäminen kuntoon. Kysy palautetta/neuvoa pääteohjauksessa?
     TIMissä taisi olla jotain kurssin nimeämis/jäsentelykäytänteitä? taisi tulla sähköpostikin.
 ota pisteet talteen ja näytä ne jossain nurkassa
-hienosäädä palikoiden kääntymistä, nyt osalla palikoista mahdollista "lentää" karkuun
 näytä palikat siististi jonossa oikealla ja kolme kappaletta
-näytä siististi aseteltuna vasemmalla (1n ruudun väli kenttään)
+näytä siististi aseteltuna vasemmalla (yhden ruudun väli kenttään)
 MoveLeft ja MoveRight pitäisi saada yhdistettyä MoveHorizontally
     freefallin tyyliseks eli pohjassa pitämällä liikkuu jatkuvasti
