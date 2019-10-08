@@ -9,11 +9,11 @@ public class Tetris : PhysicsGame
 {
     private readonly int size = 50;
     private readonly int dSize = 22;
-    private readonly int forcedShape = 1;
+    private readonly int forcedShape = 0;
 
     private int currentShape = 0;
     private int upcomingShape = 0;
-    private int heldShape = 0;
+    private int heldShape = -1;
     private int currentRotation = 0;
 
     private int[,] drawArray = new int[10, 24];
@@ -26,6 +26,10 @@ public class Tetris : PhysicsGame
     private bool spawn = false;
     private bool canHold = true;
     private bool lost = false;
+
+    private bool spawnHeldBlock = false;
+    private bool updateHold = false;
+    private int nextShape = 0;
 
     private readonly int[] shapeArraySize = { 4, 2, 3, 3, 3, 3, 3 };
     private readonly string[] shapeStartPositons = { "220", "421", "420", "321", "421", "421", "321" };
@@ -164,6 +168,15 @@ public class Tetris : PhysicsGame
         {
             SpawnNextShape();
             spawn = false;
+        }
+
+        if (spawnHeldBlock)
+        {
+            SpawnNextShape(nextShape, updateHold);
+            nextShape = 0;
+            updateHold = true;
+            spawnHeldBlock = false;
+            canHold = false;
         }
 
         MoveDown();
@@ -345,12 +358,12 @@ public class Tetris : PhysicsGame
 
     private void HoldUp()
     {
-        if (canHold && !lost)
+        if (canHold && !lost && heldShape != currentShape)
         {
-            int nextShape = 0;
-            bool update = true;
-
-            if (heldShape == 0)
+            nextShape = 0;
+            updateHold = true;
+            
+            if (heldShape == -1)
             {
                 heldShape = currentShape;
                 holdArray = AddArrayToArrayAtPosition(StringTo2DArray(shapeStrings[heldShape][0], shapeArraySize[heldShape]), holdArray, 0, 0);
@@ -361,12 +374,14 @@ public class Tetris : PhysicsGame
                 heldShape = currentShape;
                 holdArray = AddArrayToArrayAtPosition(StringTo2DArray(shapeStrings[heldShape][0], shapeArraySize[heldShape]), holdArray, 0, 0);
                 currentShape = nextShape;
-                update = false;
+                updateHold = false;
             }
 
             dynamicArray = Set2DArray(dynamicArray);
-            SpawnNextShape(nextShape, update);      //ajoitusongelma? tee spawn = true ja jotenkin nuo sinne messiin kans
+            spawnHeldBlock = true;
+            //SpawnNextShape(nextShape, updateHold);      //ajoitusongelma? tee spawn = true ja jotenkin nuo sinne messiin kans
             canHold = false;
+            drawArray = CombineArrays(staticArray, dynamicArray);
         }
     }
 
