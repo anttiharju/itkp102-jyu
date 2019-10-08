@@ -1,4 +1,12 @@
-7.10.2019
+8.10.2019
+Nuolinäppäimet toimii taas wasdin lisäksi
+Stickin kiertyminen on kivempi nyt
+
+7.10.2019 (2)
+Palikkojen kiertämistä hiottu (ei voi lentää karkuun)
+Holdissa luultavasti aiemmin toisessa paikkaa ollut ajoitusbugi jonka takia tulee todella harvoin väärä palikka koska update luo uuden palikan sen päälle
+
+7.10.2019 (1)
 Tulevan palikan näkee oikealla
 Palikan voi ottaa talteen vasemmalle painamalla Q
 
