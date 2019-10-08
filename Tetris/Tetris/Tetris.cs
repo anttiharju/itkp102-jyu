@@ -9,7 +9,7 @@ public class Tetris : PhysicsGame
 {
     private readonly int size = 50;
     private readonly int dSize = 22;
-    private readonly int forcedShape = 0;
+    private readonly int forcedShape = 1;
 
     private int currentShape = 0;
     private int upcomingShape = 0;
@@ -44,7 +44,7 @@ public class Tetris : PhysicsGame
         string[] wormR = { "660066000", "060660600" };
         string[] cornerR = { "777700000", "700700770", "000007777", "770070070" };
 
-        Vector[] stickOffset = { new Vector(0, -1), new Vector(-2, -1) };
+        Vector[] stickOffset = { new Vector(-1, -1), new Vector(-1, -1) };
         Vector[] blockOffset = { new Vector(0, 0) };
         Vector[] tOffset = { new Vector(0, -1), new Vector(-1, 0), new Vector(-1, -1), new Vector(-1, -1) };
         Vector[] wormOffset = { new Vector(-1, -1), new Vector(0, 0) };
@@ -59,11 +59,9 @@ public class Tetris : PhysicsGame
         SetupLoops();
         SetupGame();
 
-        Keyboard.Listen(Key.W, ButtonState.Pressed, Rotate, "Kieritä palikkaa");
-        Keyboard.Listen(Key.A, ButtonState.Pressed, MoveLeft, "Liiku vasemmalle");
-        Keyboard.Listen(Key.S, ButtonState.Pressed, FreefallOn, "Nopeasti alas");
-        Keyboard.Listen(Key.S, ButtonState.Released, FreefallOff, "");
-        Keyboard.Listen(Key.D, ButtonState.Pressed, MoveRight, "Liiku oikealle");
+        SetupDirections(Key.W, Key.A, Key.S, Key.D);
+        SetupDirections(Key.Up, Key.Left, Key.Down, Key.Right);
+
         Keyboard.Listen(Key.Space, ButtonState.Pressed, SlamDown, "Iske alas");
         Keyboard.Listen(Key.Q, ButtonState.Pressed, HoldUp, "Ota palikka talteen");
         Keyboard.Listen(Key.R, ButtonState.Pressed, Restart, "Aloita alusta");
@@ -74,6 +72,14 @@ public class Tetris : PhysicsGame
         Keyboard.Listen(Key.Escape, ButtonState.Pressed, Exit, "Lopeta peli");
     }
 
+    private void SetupDirections(Key up, Key left, Key down, Key right)
+    {
+        Keyboard.Listen(up, ButtonState.Pressed, Rotate, "Kieritä palikkaa");
+        Keyboard.Listen(left, ButtonState.Pressed, MoveLeft, "Liiku vasemmalle");
+        Keyboard.Listen(down, ButtonState.Pressed, FreefallOn, "Nopeasti alas");
+        Keyboard.Listen(down, ButtonState.Released, FreefallOff, "");
+        Keyboard.Listen(right, ButtonState.Pressed, MoveRight, "Liiku oikealle");
+    }
 
     /// <summary>
     /// Piirtää pelikentän
