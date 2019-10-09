@@ -6,7 +6,7 @@
     <Platform Condition=" '$(Platform)' == '' ">x86</Platform>
     <ProductVersion>8.0.30703</ProductVersion>
     <SchemaVersion>2.0</SchemaVersion>
-    <ProjectGuid>{C388DEDA-59F8-4AB0-85A1-073C936D3132}</ProjectGuid>
+    <ProjectGuid>{7E967D85-1EDA-4761-B8C7-041F555E0E26}</ProjectGuid>
     <OutputType>WinExe</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>Tetris</RootNamespace>
@@ -40,16 +40,13 @@
     <ApplicationIcon>Icon.ico</ApplicationIcon>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="Tetris.cs" />
     <Compile Include="Ohjelma.cs" />
+    <Compile Include="Tetris.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="Jypeli">
       <HintPath>$(registry:HKEY_LOCAL_MACHINE\Software\MonoJypeli@Install_Dir)\WindowsGL\Jypeli.dll</HintPath>
-    </Reference>
-    <Reference Include="Jypeli.Physics2d">
-      <HintPath>$(registry:HKEY_LOCAL_MACHINE\Software\MonoJypeli@Install_Dir)\WindowsGL\Jypeli.Physics2d.dll</HintPath>
     </Reference>
     <Reference Include="MonoGame.Framework">
       <HintPath>$(MonoGameInstallDirectory)\MonoGame\v3.0\Assemblies\Windows\MonoGame.Framework.dll</HintPath>

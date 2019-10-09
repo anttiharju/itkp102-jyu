@@ -2,6 +2,8 @@
 Poistin drawArrayn, eihän sitä tarvitse yhdistää samaan arrayyn piirettäväksi kun voi vaan piirtää kaksi eri arrayta
     Nyt ei tartte jatkuvasti päivittää sitä koodissa ja nyt input lagi on aina jatkuvasti automaattisesti pienin mahdollinen
 
+Muutin projektin fysiikkapelistä peruspeliksi
+
 8.10.2019
 Nuolinäppäimet toimii taas wasdin lisäksi
 Stickin kiertyminen on kivempi nyt
