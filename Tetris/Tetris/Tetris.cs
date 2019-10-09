@@ -5,7 +5,7 @@ using Jypeli.Assets;
 using Jypeli.Controls;
 using Jypeli.Widgets;
 
-public class Tetris : PhysicsGame
+public class Tetris : Game
 {
     private readonly int size = 50;
     private readonly int dSize = 22;
@@ -360,7 +360,7 @@ public class Tetris : PhysicsGame
         {
             nextShape = 0;
             updateHold = true;
-            
+
             if (heldShape == -1)
             {
                 heldShape = currentShape;
