@@ -16,8 +16,7 @@ public class Tetris : PhysicsGame
     private int heldShape = -1;
     private int currentRotation = 0;
 
-    private int[,] drawArray = new int[10, 24];
-    private int[,] staticArray;
+    private int[,] staticArray = new int[10, 24];
     private int[,] dynamicArray;
     private int[,] upcomingArray = new int[4, 4];
     private int[,] holdArray = new int[4, 4];
@@ -91,19 +90,20 @@ public class Tetris : PhysicsGame
     protected override void Paint(Canvas canvas)
     {
         //Pelikenttä
-        DrawArray(canvas, drawArray, 0, 0, true);
+        DrawArray(canvas, staticArray, 0, 0, true);
+        DrawArray(canvas, dynamicArray, 0, 0);
 
-        //Pelikentän reunat
+        //sen reunat
         canvas.BrushColor = Color.DarkGray;
         canvas.DrawLine(-25, -25, dynamicArray.GetLength(0) * 50 - 25, -25);
         canvas.DrawLine(-25, -25, -25, (dynamicArray.GetLength(1) - 4) * 50 - 25);
         canvas.DrawLine(dynamicArray.GetLength(0) * 50 - 25, -25, dynamicArray.GetLength(0) * 50 - 25, (dynamicArray.GetLength(1) - 4) * 50 - 25);
 
         //Tulevat palikat
-        DrawArray(canvas, upcomingArray, size * (drawArray.GetLength(0) + 1), size * (drawArray.GetLength(1) - (upcomingArray.GetLength(1) * 2)));
+        DrawArray(canvas, upcomingArray, size * (staticArray.GetLength(0) + 1), size * (staticArray.GetLength(1) - (upcomingArray.GetLength(1) * 2)));
 
         //Tallennettu palikka
-        DrawArray(canvas, holdArray, -size * (holdArray.GetLength(0) + 1), size * (drawArray.GetLength(1) - (holdArray.GetLength(1) * 2)));
+        DrawArray(canvas, holdArray, -size * (holdArray.GetLength(0) + 1), size * (staticArray.GetLength(1) - (holdArray.GetLength(1) * 2)));
 
         base.Paint(canvas);
     }
@@ -180,7 +180,6 @@ public class Tetris : PhysicsGame
         }
 
         MoveDown();
-        drawArray = CombineArrays(staticArray, dynamicArray);
     }
 
     private bool MoveDown()
@@ -213,7 +212,6 @@ public class Tetris : PhysicsGame
             {
                 freefall = false;
             }
-            drawArray = CombineArrays(staticArray, dynamicArray);
         }
     }
 
@@ -381,7 +379,6 @@ public class Tetris : PhysicsGame
             spawnHeldBlock = true;
             //SpawnNextShape(nextShape, updateHold);      //ajoitusongelma? tee spawn = true ja jotenkin nuo sinne messiin kans
             canHold = false;
-            drawArray = CombineArrays(staticArray, dynamicArray);
         }
     }
 
@@ -397,7 +394,6 @@ public class Tetris : PhysicsGame
                     break;
                 }
             }
-            drawArray = CombineArrays(staticArray, dynamicArray);
         }
     }
 
@@ -408,7 +404,6 @@ public class Tetris : PhysicsGame
             var result = RotateInArray(dynamicArray, currentRotation, currentShape, shapeStrings, shapeArraySize, shapeOffsets);
             dynamicArray = result.array;
             currentRotation = result.currentRotation;
-            drawArray = CombineArrays(staticArray, dynamicArray);
         }
     }
 
@@ -527,7 +522,6 @@ public class Tetris : PhysicsGame
                 }
             }
         }
-        drawArray = CombineArrays(staticArray, dynamicArray);
     }
 
     private void MoveRight()
@@ -549,7 +543,6 @@ public class Tetris : PhysicsGame
                 }
             }
         }
-        drawArray = CombineArrays(staticArray, dynamicArray);
     }
 
     public static bool CanMoveHorizontally(int[,] staticArray, int[,] dynamicArray, int vx, int direction)
@@ -769,7 +762,6 @@ public class Tetris : PhysicsGame
                 dynamicArray = AddArrayToArrayAtPosition(StringTo2DArray(shapeStrings[i][0], shapeArraySize[i]), dynamicArray, startX, startY);
             }
         }
-        drawArray = CombineArrays(staticArray, dynamicArray);
     }
 
 
@@ -825,10 +817,9 @@ public class Tetris : PhysicsGame
     /// </summary>
     private void SetupArrays()
     {
-        staticArray = new int[drawArray.GetLength(0), drawArray.GetLength(1)];
-        dynamicArray = new int[drawArray.GetLength(0), drawArray.GetLength(1)];
+        staticArray = new int[staticArray.GetLength(0), staticArray.GetLength(1)];
+        dynamicArray = new int[staticArray.GetLength(0), staticArray.GetLength(1)];
 
-        drawArray = Set2DArray(drawArray);
         staticArray = Set2DArray(staticArray);
         dynamicArray = Set2DArray(dynamicArray);
         upcomingArray = Set2DArray(upcomingArray);
