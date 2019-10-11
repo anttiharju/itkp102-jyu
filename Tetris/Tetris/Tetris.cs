@@ -399,12 +399,27 @@ public class Tetris : Game
 
     private void Rotate()
     {
-        if (CanRotate(dynamicArray, staticArray, currentRotation, currentShape, shapeStrings, shapeArraySize, shapeOffsets))
+        if (IsArrayEmpty(dynamicArray) || CanRotate(dynamicArray, staticArray, currentRotation, currentShape, shapeStrings, shapeArraySize, shapeOffsets))
         {
             var result = RotateInArray(dynamicArray, currentRotation, currentShape, shapeStrings, shapeArraySize, shapeOffsets);
             dynamicArray = result.array;
             currentRotation = result.currentRotation;
         }
+    }
+
+    public static bool IsArrayEmpty(int[,] array)
+    {
+        for (int x = 0; x < array.GetLength(0); x++)
+        {
+            for (int y = 0; y < array.GetLength(0); y++)
+            {
+                if(array[x,y ] != 0)
+                {
+                    return false;
+                }
+            }
+        }
+        return true;
     }
 
     //Luodaan uusi jossa pyöräytetään ja katsotaan meneekö pyöräytys päällekkäin aikaisempien palikoiden kanssa
@@ -753,6 +768,7 @@ public class Tetris : Game
 
     private void SpawnSpecificShape(string shape = "")
     {
+        currentRotation = 0;
         for (int i = 0; i < shapes.Length; i++)
         {
             if (shape == shapes[i])
