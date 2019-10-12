@@ -7,6 +7,10 @@ Peli on nyt kokonäytöllä
 
 Laitan tallessa olevan ja tulevan palikan piiloon kun pelin häviää
 
+Valmisteluja android versiota varten
+Xbox ohjaintuki
+
+
 11.10.2019
 Korjasin bugin jossa peli kaatui jos palikkaa vaihdettaessa uudella palikalla on vähemmän pyöritysasentoja kuin vanhalla
 
