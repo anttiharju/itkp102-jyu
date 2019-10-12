@@ -36,38 +36,21 @@ public class Tetris : Game
     private List<string[]> shapeStrings = new List<string[]>();
     private List<Vector[]> shapeOffsets = new List<Vector[]>();
 
+
     public override void Begin()
     {
-        size = (int)Screen.Height / 28;
+        IsFullScreen = true;
 
-        string[] stick = { "0010001000100010", "0000000011110000" };
-        string[] block = { "2222" };
-        string[] t = { "000333030", "030033030", "030333000", "030330030" };
-        string[] worm = { "044440000", "400440040" };
-        string[] corner = { "000555005", "055050050", "500555000", "050050550" };
-        string[] wormR = { "660066000", "060660600" };
-        string[] cornerR = { "777700000", "700700770", "000007777", "770070070" };
-
-        Vector[] stickOffset = { new Vector(-1, -1), new Vector(-1, -1) };
-        Vector[] blockOffset = { new Vector(0, 0) };
-        Vector[] tOffset = { new Vector(0, -1), new Vector(-1, 0), new Vector(-1, -1), new Vector(-1, -1) };
-        Vector[] wormOffset = { new Vector(-1, -1), new Vector(0, 0) };
-        Vector[] cornerOffset = { new Vector(0, 0), new Vector(0, 0), new Vector(0, -1), new Vector(-2, -2) };
-        Vector[] wormROffset = { new Vector(0, 0), new Vector(-1, -1) };
-        Vector[] cornerROffset = { new Vector(0, -1), new Vector(-1, 0), new Vector(-1, -1), new Vector(0, 0) };
-
-        shapeStrings = new List<string[]>() { stick, block, t, worm, corner, wormR, cornerR };
-        shapeOffsets = new List<Vector[]>() { stickOffset, blockOffset, tOffset, wormOffset, cornerOffset, wormROffset, cornerROffset };
-
+        SetupGame();
         SetupArrays();
         SetupLoops();
-        SetupGame();
 
+        //Näppäinkomennot
         SetupDirections(Key.W, Key.A, Key.S, Key.D);
         SetupDirections(Key.Up, Key.Left, Key.Down, Key.Right);
 
         Keyboard.Listen(Key.Space, ButtonState.Pressed, SlamDown, "Iske alas");
-        Keyboard.Listen(Key.Q, ButtonState.Pressed, HoldUp, "Ota palikka talteen");
+        Keyboard.Listen(Key.Q, ButtonState.Pressed, HolUpAMinute, "Ota palikka talteen");
         Keyboard.Listen(Key.R, ButtonState.Pressed, Restart, "Aloita alusta");
 
         SpawnNextShape();
@@ -76,6 +59,15 @@ public class Tetris : Game
         Keyboard.Listen(Key.Escape, ButtonState.Pressed, Exit, "Lopeta peli");
     }
 
+
+    /// <summary>
+    /// Oma aliohjelma perusohjaukselle, että saan wasd ja nuolinäppäimet helposti
+    /// yhtäaikaa käyttöön
+    /// </summary>
+    /// <param name="up">Näppäin jolla kiertää palikkaa</param>
+    /// <param name="left">Näppäin jolla liikkua vasemmalle</param>
+    /// <param name="down">Näppäin jolla tippua nopeasti</param>
+    /// <param name="right">Näppäin jolla liikkua oikealle</param>
     private void SetupDirections(Key up, Key left, Key down, Key right)
     {
         Keyboard.Listen(up, ButtonState.Pressed, Rotate, "Kieritä palikkaa");
@@ -85,25 +77,27 @@ public class Tetris : Game
         Keyboard.Listen(right, ButtonState.Pressed, MoveRight, "Liiku oikealle");
     }
 
+
     /// <summary>
-    /// Piirtää pelikentän
+    /// Peli piirretään täällä
     /// </summary>
+    /// <param name="canvas">pelin canvas</param>
     protected override void Paint(Canvas canvas)
     {
         //Pelikenttä
-        canvas.BrushColor = NumberToColor(currentShape + 1);
+        canvas.BrushColor = NumberToColor(8);
         canvas.DrawLine(size * -5 - 1, size * -12, size * -5 - 1, size * 8);
         canvas.DrawLine(size * 5, size * -12, size * 5, size * 8);
         canvas.DrawLine(size * -5 - 2, size * -12 - 1, size * 5, size * -12 - 1);
 
-        DrawArray(canvas, staticArray, 0, 0, true);
-        DrawArray(canvas, dynamicArray, 0, 0);
+        DrawArray(canvas, staticArray, Vector.Zero, true);
+        DrawArray(canvas, dynamicArray, Vector.Zero);
 
         //Tulevat palikat
-        DrawArray(canvas, upcomingArray, size * (staticArray.GetLength(0) + 1), size * (staticArray.GetLength(1) - (upcomingArray.GetLength(1) * 2)));
+        DrawArray(canvas, upcomingArray, new Vector(size * (staticArray.GetLength(0) + 1), size * (staticArray.GetLength(1) - (upcomingArray.GetLength(1) * 2))));
 
         //Tallennettu palikka
-        DrawArray(canvas, holdArray, -size * (holdArray.GetLength(0) + 1), size * (staticArray.GetLength(1) - (holdArray.GetLength(1) * 2)));
+        DrawArray(canvas, holdArray, new Vector(-size * (holdArray.GetLength(0) + 1), size * (staticArray.GetLength(1) - (holdArray.GetLength(1) * 2))));
 
         //Pistelaskuri (halusin tyylikkäästi skaalautuvan, siksi oma eikä joku valmis tekstipohjainen)
         canvas.BrushColor = NumberToColor(0);
@@ -118,7 +112,14 @@ public class Tetris : Game
     }
 
 
-    private void DrawArray(Canvas canvas, int[,] array, int positionX, int positionY, bool drawBackground = false)
+    /// <summary>
+    /// Piirtää kaksiulotteisen taulukon halutulle canvakselle halutussa kohdassa
+    /// </summary>
+    /// <param name="canvas">Minne piirretään</param>
+    /// <param name="array">Mikä piirretään</param>
+    /// <param name="position">Kohta josta aloitetaan piirtämään</param>
+    /// <param name="drawBackground">Taustaväri</param>
+    private void DrawArray(Canvas canvas, int[,] array, Vector position, bool drawBackground = false)
     {
         int xOffset = size * -5;
         int yOffset = size * -12;
@@ -129,12 +130,12 @@ public class Tetris : Game
             {
                 canvas.BrushColor = NumberToColor(array[x, y]);
 
-                int tx = x * size;
-                int ty = y * size;
+                int scaledX = x * size;
+                int scaledY = y * size;
 
                 if (array[x, y] != 0)
                 {
-                    DrawCube(canvas, tx + positionX + xOffset, ty + positionY + yOffset);
+                    DrawCube(canvas, new Vector(scaledX + (int)position.X + xOffset, scaledY + (int)position.Y + yOffset));
                 }
 
                 if (drawBackground)
@@ -143,17 +144,17 @@ public class Tetris : Game
                     {
                         if (array[x, y] == 0)
                         {
-                            if (!IsAnythingAbove(x, y, dynamicArray) || IsAnythingAbove(x, y, staticArray))
+                            if (!IsAnythingAbove(new Vector(x, y), dynamicArray) || IsAnythingAbove(new Vector(x, y), staticArray))
                             {
-                                canvas.BrushColor = NumberToColor(currentShape + 1);
-                                DrawCube(canvas, tx + xOffset, ty + yOffset);
+                                canvas.BrushColor = NumberToColor(8);
+                                DrawCube(canvas, new Vector(scaledX + xOffset, scaledY + yOffset));
                                 canvas.BrushColor = backgroundColor;
-                                DrawCube(canvas, tx + xOffset, ty + yOffset, 1);
+                                DrawCube(canvas, new Vector(scaledX + xOffset, scaledY + yOffset), 1);
                             }
                         }
                         else
                         {
-                            DrawCube(canvas, tx + xOffset, ty + yOffset);
+                            DrawCube(canvas, new Vector(scaledX + xOffset, scaledY + yOffset));
                         }
                     }
                 }
@@ -161,15 +162,29 @@ public class Tetris : Game
         }
     }
 
-
-    private void DrawCube(Canvas canvas, int tx, int ty, int offset = 0)
+    /// <summary>
+    /// Jypelissä ei ollut valmista funktiota jolla piirtää
+    /// kuutio, joten tässä oma joka vain piirtää monta viivaa vierekkäin
+    /// </summary>
+    /// <param name="canvas">Minne piirretään</param>
+    /// <param name="position">Mihin kohtaan piirretään</param>
+    /// <param name="offset">Kutistaa kuution kokoa</param>
+    private void DrawCube(Canvas canvas, Vector position, int offset = 0)
     {
         for (int i = 0 + offset; i < size - offset; i++)
         {
-            canvas.DrawLine(tx + i, ty + offset, tx + i, ty + size - offset);
+            canvas.DrawLine(position.X + i, position.Y + offset, position.X + i, position.Y + size - offset);
         }
     }
 
+
+    /// <summary>
+    /// Piirtää numeron, pisteenlaskua varten
+    /// Halusin nätisti skaalatuvan ja tyylikään pistelaskurin, siksi otin tämän.
+    /// </summary>
+    /// <param name="canvas">Minne piirretään</param>
+    /// <param name="n">Mikä numero piirretään</param>
+    /// <param name="xOffset">Monesko numero vasemmalta laskien piirretään</param>
     private void DrawNumber(Canvas canvas, int n, int xOffset = 0)
     {
         string s = numberFont[n];
@@ -182,7 +197,7 @@ public class Tetris : Game
             {
                 if (s[index] == '1')
                 {
-                    DrawCube(canvas, x * size / 2 - (int)(Screen.Width / 2) + size * 2 * xOffset, y * size / 2 + (int)(Screen.Height / 2) - size * 3, size / 4);
+                    DrawCube(canvas, new Vector(x * size / 2 - (int)(Screen.Width / 2) + size * 2 * xOffset, y * size / 2 + (int)(Screen.Height / 2) - size * 3), size / 4);
                 }
                 index++;
             }
@@ -191,7 +206,7 @@ public class Tetris : Game
 
 
     /// <summary>
-    /// Pelilogiikka pyörii täällä
+    /// Pelilogiikka pyörii täällä, voisi kai tehdä jotenkin overriden avulla, mutta tein nyt näin.
     /// </summary>
     private void Update()
     {
@@ -213,6 +228,11 @@ public class Tetris : Game
         MoveDown();
     }
 
+
+    /// <summary>
+    /// Liikuttaa dynamicarrayta yhdellä alas ja antaa pisteitä täysistä riveistä
+    /// </summary>
+    /// <returns>Tosi jos rivi tuli täyteen</returns>
     private bool MoveDown()
     {
         if (CanMoveWholeArray(dynamicArray, staticArray))
@@ -223,7 +243,7 @@ public class Tetris : Game
         {
             staticArray = CombineArrays(staticArray, dynamicArray);
             CheckForFullLines();
-            dynamicArray = Set2DArray(dynamicArray);
+            SetArrayToZero(dynamicArray);
             CheckIfLost();
             return true;
         }
@@ -231,8 +251,9 @@ public class Tetris : Game
         return false;
     }
 
+
     /// <summary>
-    /// Piti tehdä omaksi loopiksensa että voi vaihtaa nopeutta
+    /// Timerilla tehty looppi, halusin pystyä hienosäätämään tippumisen nopeutta.
     /// </summary>
     private void FreefallLoop()
     {
@@ -246,28 +267,41 @@ public class Tetris : Game
         }
     }
 
+
     /// <summary>
-    /// Palauttaa oikean värin oikealle numerolle
+    /// Palauttaa numeroa vastaavan värin, 8 palauttaa nykyisen palikan värin jos peli ei ole loppunut ja tummanharmaan jos on
     /// </summary>
-    /// <param name="n">Numero</param>
-    /// <returns>Numeroa vastaavan värin</returns>
-    public static Color NumberToColor(int n)
+    /// <param name="n">numero</param>
+    /// <returns>värin</returns>
+    private Color NumberToColor(int n)
     {
-        Color[] colors = { Color.White, Color.Cyan, Color.Yellow, Color.Purple, Color.Green, Color.Blue, Color.Red, Color.Orange };
+        Color[] colors = { Color.White, Color.Cyan, Color.Yellow, Color.Purple, Color.Green, Color.Blue, Color.Red, Color.Orange, Color.DarkGray };
+
+        if(n == 8 && !lost)
+        {
+            return colors[currentShape + 1];
+        }
 
         return colors[n];
     }
 
 
-    public static int[,] StringTo2DArray(string s, int size)
+    /// <summary>
+    /// Muuttaa string muuttujan 2-ulotteiseksi int taulukoksi.
+    /// Helpompi säilöä string muuttujissa palikoiden eri kieritysasentoja kuin suoraan taulukoissa.
+    /// </summary>
+    /// <param name="s">string josta muutetaan taulukko</param>
+    /// <param name="rowLength">Rivin leveys</param>
+    /// <returns>2-ulotteisen int taulukon</returns>
+    public static int[,] StringTo2DArray(string s, int rowLength)
     {
-        int[,] array = new int[size, size];
+        int[,] array = new int[rowLength, rowLength];
 
         for (int x = 0; x < array.GetLength(0); x++)
         {
             for (int y = 0; y < array.GetLength(1); y++)
             {
-                array[x, y] = s[y * size + x] - 48; //array[x, y] = int.Parse(Char.ToString(s[y * size + x])); //Toimis kans mutta mitä turhia
+                array[x, y] = s[y * rowLength + x] - 48; //array[x, y] = int.Parse(Char.ToString(s[y * size + x])); //Toimis kans mutta mitä turhia
             }
         }
 
@@ -275,15 +309,14 @@ public class Tetris : Game
     }
 
 
-    public static Vector FindStartPos(int[,] array)
+    /// <summary>
+    /// Löytää taulukosta vasemmalta oikealle, alhaalta ylös etsien ensimmäisen arvon joka ei ole nolla ja palauttaa sen sijainnin
+    /// </summary>
+    /// <param name="array">Taulukko, josta etsitään</param>
+    /// <returns>Ensimmäisen ei 0 arvoisen muuttujan sijainnin, (-1,-1) jos mitään ei löydetty</returns>
+    public static Vector FindStartPosition(int[,] array)
     {
-        return new Vector(FindStartX(array), FindStartY(array));
-    }
-
-
-    public static int FindStartY(int[,] array)
-    {
-        int startY = -1;
+        Vector start = -Vector.One;
 
         for (int x = 0; x < array.GetLength(0); x++)
         {
@@ -291,41 +324,27 @@ public class Tetris : Game
             {
                 if (array[x, y] != 0)
                 {
-                    startY = y;
-                    return startY;
+                    return new Vector(x, y);
                 }
             }
         }
 
-        return startY;
+        return start;
     }
 
 
-    public static int FindStartX(int[,] array)
+    /// <summary>
+    /// Liimaa small taulukon big taulukon päälle annetussa sijainnissa
+    /// </summary>
+    /// <param name="small">liimattava taulukko</param>
+    /// <param name="big">taulukko johon liimataan</param>
+    /// <param name="position">liimauksen aloituskohta</param>
+    /// <returns></returns>
+    public static int[,] AddArrayToArrayAtPosition(int[,] small, int[,] big, Vector position)
     {
-        int startX = -1;
-
-        for (int y = 0; y < array.GetLength(1); y++)
-        {
-            for (int x = 0; x < array.GetLength(0); x++)
-            {
-                if (array[x, y] != 0)
-                {
-                    startX = x;
-                    return startX;
-                }
-            }
-        }
-
-        return startX;
-    }
-
-
-    public static int[,] AddArrayToArrayAtPosition(int[,] small, int[,] big, int startX, int startY)
-    {
+        //Kopiodaan big -> final
         int[,] final = new int[big.GetLength(0), big.GetLength(1)];
 
-        //Kopiodaan big -> final
         for (int x = 0; x < small.GetLength(0); x++)
         {
             for (int y = 0; y < small.GetLength(1); y++)
@@ -335,58 +354,77 @@ public class Tetris : Game
         }
 
         //Vältetään index out of bounds virheet (a godsend)
-        if (startX + small.GetLength(0) > big.GetLength(0))
+        if (position.X + small.GetLength(0) > big.GetLength(0))
         {
-            startX = big.GetLength(0) - small.GetLength(0);
+            position.X = big.GetLength(0) - small.GetLength(0);
         }
 
-        if (startY + small.GetLength(1) > big.GetLength(1))
+        if (position.Y + small.GetLength(1) > big.GetLength(1))
         {
-            startY = big.GetLength(1) - small.GetLength(1);
+            position.Y = big.GetLength(1) - small.GetLength(1);
         }
-        if (startX < 0)
+        if (position.X < 0)
         {
-            startX = 0;
+            position.X = 0;
         }
-        if (startY < 0)
+        if (position.Y < 0)
         {
-            startY = 0;
+            position.Y = 0;
         }
 
-        //Tehään se itse juttu
+        //Liimataan
         for (int x = 0; x < small.GetLength(0); x++)
         {
             for (int y = 0; y < small.GetLength(1); y++)
             {
-                final[startX + x, startY + y] = small[x, y];
+                final[(int)position.X + x, (int)position.Y + y] = small[x, y];
             }
         }
 
         return final;
     }
 
+
+    /// <summary>
+    /// Aloittaa pelin alusta
+    /// </summary>
     private void Restart()
     {
         lost = false;
-        dynamicArray = Set2DArray(dynamicArray);
-        staticArray = Set2DArray(staticArray);
-        holdArray = Set2DArray(holdArray);
+        SetArrayToZero(dynamicArray);
+        SetArrayToZero(staticArray);
+        currentShape = RandomGen.NextInt(shapes.Length);
+        upcomingShape = RandomGen.NextInt(shapes.Length);
+        SetArrayToZero(holdArray);
         heldShape = 0;
         score = 0;
         SpawnNextShape();
     }
 
+
+    /// <summary>
+    /// Kytkee nopean tippumisen päälle
+    /// </summary>
     private void FreefallOn()
     {
         freefall = true;
     }
 
+
+    /// <summary>
+    /// Kytkee nopean tippumisen pois päältä
+    /// </summary>
     private void FreefallOff()
     {
         freefall = false;
     }
 
-    private void HoldUp()
+
+    /// <summary>
+    /// Ottaa talteen nykyisen palikan ja jos tallessa on jo palikkaa antaa sen käytettäväksi.
+    /// Ei ehkä kuvaava nimi, but this does put a smile on my face.
+    /// </summary>
+    private void HolUpAMinute()
     {
         if (canHold && !lost && heldShape != currentShape)
         {
@@ -396,27 +434,30 @@ public class Tetris : Game
             if (heldShape == -1)
             {
                 heldShape = currentShape;
-                holdArray = AddArrayToArrayAtPosition(StringTo2DArray(shapeStrings[heldShape][0], shapeArraySize[heldShape]), holdArray, 0, 0);
+                holdArray = AddArrayToArrayAtPosition(StringTo2DArray(shapeStrings[heldShape][0], shapeArraySize[heldShape]), holdArray, Vector.Zero);
             }
             else
             {
                 nextShape = heldShape;
                 heldShape = currentShape;
-                holdArray = AddArrayToArrayAtPosition(StringTo2DArray(shapeStrings[heldShape][0], shapeArraySize[heldShape]), holdArray, 0, 0);
+                holdArray = AddArrayToArrayAtPosition(StringTo2DArray(shapeStrings[heldShape][0], shapeArraySize[heldShape]), holdArray, Vector.Zero);
                 currentShape = nextShape;
                 updateHold = false;
             }
 
-            dynamicArray = Set2DArray(dynamicArray);
+            SetArrayToZero(dynamicArray);
             spawnHeldBlock = true;
-            //SpawnNextShape(nextShape, updateHold);      //ajoitusongelma? tee spawn = true ja jotenkin nuo sinne messiin kans
             canHold = false;
         }
     }
 
+
+    /// <summary>
+    /// Läimäyttää nykyisen palikan alas.
+    /// </summary>
     private void SlamDown()
     {
-        if (FindStartX(dynamicArray) != -1) //pitää olla jotakin mitä liikuttaa alas tai jäädään jumiin
+        if (FindStartPosition(dynamicArray) != -Vector.One) //pitää olla jotakin mitä liikuttaa alas tai jäädään jumiin
         {
             while (true)
             {
@@ -429,6 +470,10 @@ public class Tetris : Game
         }
     }
 
+
+    /// <summary>
+    /// Kiertää tippuvaa palikkaa
+    /// </summary>
     private void Rotate()
     {
         if (IsArrayEmpty(dynamicArray) || CanRotate(dynamicArray, staticArray, currentRotation, currentShape, shapeStrings, shapeArraySize, shapeOffsets))
@@ -439,6 +484,12 @@ public class Tetris : Game
         }
     }
 
+
+    /// <summary>
+    /// Onko taulukko tyhjä
+    /// </summary>
+    /// <param name="array">Tarkistettava taulukko</param>
+    /// <returns>Tosi, jos on tyhjä, epätosi jos ei</returns>
     public static bool IsArrayEmpty(int[,] array)
     {
         for (int x = 0; x < array.GetLength(0); x++)
@@ -454,8 +505,21 @@ public class Tetris : Game
         return true;
     }
 
-    //Luodaan uusi jossa pyöräytetään ja katsotaan meneekö pyöräytys päällekkäin aikaisempien palikoiden kanssa
-    public static bool CanRotate(int[,] rotationArray, int[,] staticArray, int cRotation, int cShape, List<string[]> shapeStrings, int[] shapeArraySize, List<Vector[]> shapeOffsets)
+
+    /// <summary>
+    /// Tarkistaa, onko palikkaa mahdollista pyöräyttää kopioimalla dynamicArrayn uuteen taulukkoon, pyöräyttämällä siinä ja tarkistamalla meneekö päällekkäin staticArrayn kanssa
+    /// Pakko olla public static eikä private, koska muuten tulee sellasta ikävän paljon globaali muuttuja muistuttavaa säätöä josta tulee outoja bugeja joiden kanssa en halua tapella.
+    /// Sen takia mahdoton aliohjelmakutsussa mahdoton määrä muuttujia
+    /// </summary>
+    /// <param name="rotationArray">Pyöräytettävä taulukko</param>
+    /// <param name="staticArray">Taulukko, jossa on palikat jotka eivät enää tipu</param>
+    /// <param name="currentRotation">Tippuvan palikan asento</param>
+    /// <param name="currentShape">Tippuvan palikan muoto</param>
+    /// <param name="shapeStrings">Kaikki palikat ja niiden asennot</param>
+    /// <param name="shapeArraySize">Palikoiden koot taulukoksi muuttamista varten</param>
+    /// <param name="shapeOffsets">Tänne on säilötty paljonko palikoita pitää eri pyöräytysvaiheiden välillä liikuttaa, ettei niillä voi lentää ylöspäin tai liusu sivuille</param>
+    /// <returns>Voidaanko pyöräyttää vai ei</returns>
+    public static bool CanRotate(int[,] rotationArray, int[,] staticArray, int currentRotation, int currentShape, List<string[]> shapeStrings, int[] shapeArraySize, List<Vector[]> shapeOffsets)
     {
         int[,] newArray = new int[rotationArray.GetLength(0), rotationArray.GetLength(1)];
 
@@ -467,7 +531,7 @@ public class Tetris : Game
             }
         }
 
-        var result = RotateInArray(newArray, cRotation, cShape, shapeStrings, shapeArraySize, shapeOffsets);
+        var result = RotateInArray(newArray, currentRotation, currentShape, shapeStrings, shapeArraySize, shapeOffsets);
         newArray = result.array;
 
         if (ArraysOverlap(newArray, staticArray))
@@ -478,58 +542,61 @@ public class Tetris : Game
         return true;
     }
 
-    //Piti saada aliohjelmasta palautettua kaksi arvoa
+
+    /// <summary>
+    /// Piti pystyä palauttamaan kaksi eri arvoa aliohjelmasta, tämä kai oikea tapa siihen
+    /// </summary>
     public struct RotationResult
     {
         public int[,] array;
         public int currentRotation;
     }
 
+
     /// <summary>
-    /// Oli alunperin private voidissa niin sentakia pitää olla tämä struct pelleily mukana.
-    /// Nyt kun tehty tälläiseksi mistä tahansa kutsuttavaksi, on tosi helppo testata etukäteen
-    /// kääntää palikkaa ja katsoa meneekö se päällekkäin jo jonkun olemassaolevan palikan kanssa.
-    /// Toivonmukaan on myös yhteensopiva myöhemmin sen kanssa kun yritän estää palikoita "karkaamasta"
-    /// niitä pyöritellessä
+    /// Pyöräytetään annettussa taulukossa (rotationArray) olevaa palikkaa
     /// </summary>
-    /// <param name="rotationArray"></param>
-    /// <param name="cRotation"></param>
-    /// <param name="cShape"></param>
-    /// <param name="shapeStrings"></param>
-    /// <param name="shapeArraySize"></param>
-    /// <returns></returns>
-    public static RotationResult RotateInArray(int[,] rotationArray, int cRotation, int cShape, List<string[]> shapeStrings, int[] shapeArraySize, List<Vector[]> shapeOffsets)
+    /// <param name="rotationArray">Taulukko jossa pyöräytetään</param>
+    /// <param name="currentRotation">Tippuvan palikan asento</param>
+    /// <param name="currentShape">Tippuvan palikan muoto</param>
+    /// <param name="shapeStrings">Kaikki palikat ja niiden asennot</param>
+    /// <param name="shapeArraySize">Palikoiden koot taulukoksi muuttamista varten</param>
+    /// <param name="shapeOffsets">Tänne on säilötty paljonko palikoita pitää eri pyöräytysvaiheiden välillä liikuttaa, ettei niillä voi lentää ylöspäin tai liusu sivuille</param>
+    /// <returns>Taulukon jossa palikkaa on pyöräytetty kerran</returns>
+    public static RotationResult RotateInArray(int[,] rotationArray, int currentRotation, int currentShape, List<string[]> shapeStrings, int[] shapeArraySize, List<Vector[]> shapeOffsets)
     {
-        Vector pos = FindStartPos(rotationArray);
+        Vector pos = FindStartPosition(rotationArray);
 
         if (pos != new Vector(-1, -1))
         {
-            pos += RotationOffset(cShape, cRotation, shapeOffsets);
+            pos += shapeOffsets[currentShape][currentRotation]; //Ennen tehtiin RotationOffset aliohjelmassa, oli niin lyhyt ja vain tässä käytetty joten liitin suoraan tähän
 
-            rotationArray = Set2DArray(rotationArray);
-            cRotation++;
-            if (cRotation > shapeStrings[cShape].Length - 1)
+            SetArrayToZero(rotationArray);
+            currentRotation++;
+            if (currentRotation > shapeStrings[currentShape].Length - 1)
             {
-                cRotation = 0;
+                currentRotation = 0;
             }
-            rotationArray = AddArrayToArrayAtPosition(StringTo2DArray(shapeStrings[cShape][cRotation], shapeArraySize[cShape]), rotationArray, (int)pos.X, (int)pos.Y);
+            rotationArray = AddArrayToArrayAtPosition(StringTo2DArray(shapeStrings[currentShape][currentRotation], shapeArraySize[currentShape]), rotationArray, new Vector((int)pos.X, (int)pos.Y));
 
         }
 
         var result = new RotationResult
         {
             array = rotationArray,
-            currentRotation = cRotation
+            currentRotation = currentRotation
         };
 
         return result;
     }
 
-    public static Vector RotationOffset(int currentShape, int currentRotation, List<Vector[]> shapeOffsets)
-    {
-        return shapeOffsets[currentShape][currentRotation];
-    }
 
+    /// <summary>
+    /// Onko kahdessa eri (samankokoisessa) taulukossa kohtia joissa on samassa kohdassa joku muu arvo kuin nolla
+    /// </summary>
+    /// <param name="a">1. taulukko</param>
+    /// <param name="b">2. taulukko</param>
+    /// <returns>Tosi, jos on kohta jossa arvoja menee päällekkäin</returns>
     public static bool ArraysOverlap(int[,] a, int[,] b)
     {
         for (int x = 0; x < a.GetLength(0); x++)
@@ -549,7 +616,10 @@ public class Tetris : Game
         return false;
     }
 
-    //TODO: Yhdistä MoveRight() tämän kanssa
+
+    /// <summary>
+    /// Liikuttaa dynamicArrayta yhdella vasemmalle
+    /// </summary>
     private void MoveLeft()
     {
         if (CanMoveHorizontally(staticArray, dynamicArray, 0, -1))
@@ -571,6 +641,10 @@ public class Tetris : Game
         }
     }
 
+
+    /// <summary>
+    /// Liikuttaa dynamicArrayta yhdellä oikealle
+    /// </summary>
     private void MoveRight()
     {
         if (CanMoveHorizontally(staticArray, dynamicArray, 9, 1))
@@ -592,12 +666,21 @@ public class Tetris : Game
         }
     }
 
-    public static bool CanMoveHorizontally(int[,] staticArray, int[,] dynamicArray, int vx, int direction)
+
+    /// <summary>
+    /// Tarkistaa voidaanko liikkua sivusuunnassa
+    /// </summary>
+    /// <param name="staticArray">Taulukko, jossa on palikat jotka ei enää tipu</param>
+    /// <param name="dynamicArray">Taulukko, jossa on tippuva palikka</param>
+    /// <param name="startX">Kummasta reunasta aloitetaan (0 vai 9)</param>
+    /// <param name="direction">Suunta</param>
+    /// <returns>Tosi jos annettuun suuntaa liikkuessa ei ole mitään tiellä</returns>
+    public static bool CanMoveHorizontally(int[,] staticArray, int[,] dynamicArray, int startX, int direction)
     {
         //ei mennä reunojen yli
         for (int i = 0; i < dynamicArray.GetLength(1); i++)
         {
-            if (dynamicArray[vx, i] != 0)
+            if (dynamicArray[startX, i] != 0)
             {
                 return false;
             }
@@ -620,6 +703,13 @@ public class Tetris : Game
         return true;
     }
 
+
+    /// <summary>
+    /// Tarkistaa voiko koko dynamicArray liikkua yhdellä alas
+    /// </summary>
+    /// <param name="dynamicArray">Taulukko, jossa tippuva palikka</param>
+    /// <param name="staticArray">Taulukko, jossa tippuneet palikat</param>
+    /// <returns>Tosi, jos voidaan liikkua yhdellä alas</returns>
     public static bool CanMoveWholeArray(int[,] dynamicArray, int[,] staticArray)
     {
         for (int x = 0; x < dynamicArray.GetLength(0); x++)
@@ -640,6 +730,11 @@ public class Tetris : Game
     }
 
 
+    /// <summary>
+    /// Liikuttaa koko dynamicArrayta yhdellä alas
+    /// </summary>
+    /// <param name="dynamicArray">Taulukko, jossa tippuva palikka</param>
+    /// <returns>Taulukon, jossa liikuttu yhdellä alas</returns>
     public static int[,] MoveWholeArrayDown(int[,] dynamicArray)
     {
         int[,] newArray = new int[dynamicArray.GetLength(0), dynamicArray.GetLength(1)];
@@ -688,6 +783,9 @@ public class Tetris : Game
     }
 
 
+    /// <summary>
+    /// Tarkistaa onko staticArrayssa täysiä rivejä, tuhoaa ne ja antaa jokaisesta tuhotusta pisteen
+    /// </summary>
     private void CheckForFullLines()
     {
         List<int> linesToRemove = new List<int>();
@@ -717,25 +815,39 @@ public class Tetris : Game
         }
     }
 
-    private void DestroyLine(int cy)
+
+    /// <summary>
+    /// Asettaa annetussa kohdassa olevan vaakasuoran rivin tyhjäksi
+    /// </summary>
+    /// <param name="y"></param>
+    private void DestroyLine(int y)
     {
         for (int x = 0; x < staticArray.GetLength(0); x++)
         {
-            staticArray[x, cy] = 0;
+            staticArray[x, y] = 0;
         }
     }
 
-    private void MoveDownFromY(int cy)
+
+    /// <summary>
+    /// Liikuttaa annetun kohdan yläpuolella olevia rivejä yhdellä alas
+    /// </summary>
+    /// <param name="startY"></param>
+    private void MoveDownFromY(int startY)
     {
         for (int x = 0; x < staticArray.GetLength(0); x++)
         {
-            for (int y = cy; y < staticArray.GetLength(1) - 1; y++)
+            for (int y = startY; y < staticArray.GetLength(1) - 1; y++)
             {
                 staticArray[x, y] = staticArray[x, y + 1];
             }
         }
     }
 
+
+    /// <summary>
+    /// Tarkistaa onko palikoita tippunut yli pelikentän laitojen
+    /// </summary>
     private void CheckIfLost()
     {
         bool didLose = false;
@@ -758,18 +870,28 @@ public class Tetris : Game
         }
     }
 
-    public static int[,] Set2DArray(int[,] array, int toWhat = 0)
+
+    /// <summary>
+    /// Täyttää annetun taulukon nollilla
+    /// </summary>
+    /// <param name="array">muokattava taulukko</param>
+    public static void SetArrayToZero(int[,] array)
     {
         for (int x = 0; x < array.GetLength(0); x++)
         {
             for (int y = 0; y < array.GetLength(1); y++)
             {
-                array[x, y] = toWhat;
+                array[x, y] = 0;
             }
         }
-        return array;
     }
 
+
+    /// <summary>
+    /// Luo uuden satunnaisen palikan pelikentälle
+    /// </summary>
+    /// <param name="specificShape">Käytä jos haluat luoda tietyn palikan</param>
+    /// <param name="updateUpcomingArray">Päivitetäänkö tuleva palikka</param>
     private void SpawnNextShape(int specificShape = 0, bool updateUpcomingArray = true)
     {
         if (specificShape != 0)
@@ -790,13 +912,18 @@ public class Tetris : Game
                 upcomingShape = forcedShape - 1;
             }
 
-            upcomingArray = AddArrayToArrayAtPosition(StringTo2DArray(shapeStrings[upcomingShape][0], shapeArraySize[upcomingShape]), upcomingArray, 0, 0);
+            upcomingArray = AddArrayToArrayAtPosition(StringTo2DArray(shapeStrings[upcomingShape][0], shapeArraySize[upcomingShape]), upcomingArray, Vector.Zero);
         }
 
         SpawnSpecificShape(shapes[currentShape]);
         canHold = true;
     }
 
+
+    /// <summary>
+    /// Luo uuden halutun palikan pelikentälle
+    /// </summary>
+    /// <param name="shape">Halutun palikan numero</param>
     private void SpawnSpecificShape(string shape = "")
     {
         currentRotation = 0;
@@ -804,33 +931,49 @@ public class Tetris : Game
         {
             if (shape == shapes[i])
             {
-                int startX = SpawnStartPos(shapeStartPositons[i]);
-                int startY = SpawnStartPos(shapeStartPositons[i], false);
-                dynamicArray = AddArrayToArrayAtPosition(StringTo2DArray(shapeStrings[i][0], shapeArraySize[i]), dynamicArray, startX, startY);
+                dynamicArray = AddArrayToArrayAtPosition(StringTo2DArray(shapeStrings[i][0], shapeArraySize[i]), dynamicArray, SpawnStartPos(shapeStartPositons[i]));
             }
         }
     }
 
 
-    public static int SpawnStartPos(string s, bool firstNumber = true)
+    /// <summary>
+    /// Ottaa tiedon string tyyppisestä muuttujasta int muuttujaan palikan aloitussijainnista
+    /// </summary>
+    /// <param name="s">muuttuja jossa tieto aloitussijainnista</param>
+    /// <returns>sijainnin numerona</returns>
+    public static Vector SpawnStartPos(string s)
     {
-        if (firstNumber)
-        {
-            return (int)s[0] - 48;
-        }
-        return (int)(s[1] - 48) * 10 + (s[2] - 48);
+        return new Vector(s[0] - 48, (s[1] - 48) * 10 + (s[2] - 48));
     }
 
 
     /// <summary>
-    /// Zoomataan kamera oikealla lailla
-    /// ja laitetaan tausta mustaksi
+    /// Alustetaan peli
     /// </summary>
     private void SetupGame()
     {
-        //Camera.Zoom(0.5);
-        //Camera.X = 224;
-        //Camera.Y = 477;
+        size = (int)Screen.Height / 28;
+
+        string[] stick = { "0010001000100010", "0000000011110000" };
+        string[] block = { "2222" };
+        string[] t = { "000333030", "030033030", "030333000", "030330030" };
+        string[] worm = { "044440000", "400440040" };
+        string[] corner = { "000555005", "055050050", "500555000", "050050550" };
+        string[] wormR = { "660066000", "060660600" };
+        string[] cornerR = { "777700000", "700700770", "000007777", "770070070" };
+
+        Vector[] stickOffset = { new Vector(-1, -1), new Vector(-1, -1) };
+        Vector[] blockOffset = { new Vector(0, 0) };
+        Vector[] tOffset = { new Vector(0, -1), new Vector(-1, 0), new Vector(0, -1), new Vector(0, -1) };
+        Vector[] wormOffset = { new Vector(0, -1), new Vector(0, 0) };
+        Vector[] cornerOffset = { new Vector(0, 0), new Vector(0, 0), new Vector(0, -1), new Vector(-1, -2) };
+        Vector[] wormROffset = { new Vector(0, 0), new Vector(0, -1) };
+        Vector[] cornerROffset = { new Vector(0, -1), new Vector(-1, 0), new Vector(1, -1), new Vector(0, 0) };
+
+        shapeStrings = new List<string[]>() { stick, block, t, worm, corner, wormR, cornerR };
+        shapeOffsets = new List<Vector[]>() { stickOffset, blockOffset, tOffset, wormOffset, cornerOffset, wormROffset, cornerROffset };
+
         Level.BackgroundColor = backgroundColor;
 
         if (forcedShape == 0)
@@ -845,7 +988,7 @@ public class Tetris : Game
 
 
     /// <summary>
-    /// Tehään timeri updatelooppia varten
+    /// Alustetaan timerit looppeja varten
     /// </summary>
     private void SetupLoops()
     {
@@ -860,24 +1003,31 @@ public class Tetris : Game
 
 
     /// <summary>
-    /// Alustetaan taulukot käyttökuntoon
+    /// Alustetaan taulukot
     /// </summary>
     private void SetupArrays()
     {
         staticArray = new int[staticArray.GetLength(0), staticArray.GetLength(1)];
         dynamicArray = new int[staticArray.GetLength(0), staticArray.GetLength(1)];
 
-        staticArray = Set2DArray(staticArray);
-        dynamicArray = Set2DArray(dynamicArray);
-        upcomingArray = Set2DArray(upcomingArray);
-        holdArray = Set2DArray(holdArray);
+        SetArrayToZero(staticArray);
+        SetArrayToZero(dynamicArray);
+        SetArrayToZero(upcomingArray);
+        SetArrayToZero(holdArray);
     }
 
-    public static bool IsAnythingAbove(int sx, int sy, int[,] array)
+
+    /// <summary>
+    /// Tarkistaa onko annetun sijainnin yläpuolella annetussa taulukossa jotain muuta kuin 0
+    /// </summary>
+    /// <param name="position">Sijainti</param>
+    /// <param name="array">Taulukko</param>
+    /// <returns>Tosi, jos sijainnin yläpuolella taulukossa on jotain muuta kuin 0</returns>
+    public static bool IsAnythingAbove(Vector position, int[,] array)
     {
-        for (int y = sy; y < array.GetLength(1); y++)
+        for (int y = (int)position.Y; y < array.GetLength(1); y++)
         {
-            if (array[sx, y] != 0)
+            if (array[(int)position.X, y] != 0)
             {
                 return true;
             }
