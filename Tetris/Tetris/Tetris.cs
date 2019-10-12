@@ -6,6 +6,7 @@ public class Tetris : Game
     private int score = 0;
     private int size;
     private readonly int forcedShape = 0;
+    private readonly bool mobile = false;
 
     private Color backgroundColor = Color.Black;
 
@@ -39,24 +40,54 @@ public class Tetris : Game
 
     public override void Begin()
     {
-        IsFullScreen = true;
+        if (mobile)
+        {
+            SetWindowSize(540, 960, false);
+            size = (int)Screen.Height / 30;
+        }
+        else
+        {
+            IsFullScreen = true;
+            size = (int)Screen.Height / 30;
+        }
 
         SetupGame();
         SetupArrays();
         SetupLoops();
 
-        //Näppäinkomennot
+        //Näppäimistö
         SetupDirections(Key.W, Key.A, Key.S, Key.D);
         SetupDirections(Key.Up, Key.Left, Key.Down, Key.Right);
 
+        if (!mobile)
+        {
+            Keyboard.Listen(Key.Q, ButtonState.Pressed, HolUpAMinute, "Ota palikka talteen");
+        }
+
         Keyboard.Listen(Key.Space, ButtonState.Pressed, SlamDown, "Iske alas");
-        Keyboard.Listen(Key.Q, ButtonState.Pressed, HolUpAMinute, "Ota palikka talteen");
         Keyboard.Listen(Key.R, ButtonState.Pressed, Restart, "Aloita alusta");
-
-        SpawnNextShape();
-
         Keyboard.Listen(Key.F1, ButtonState.Pressed, ShowControlHelp, "Näytä ohjeet");
         Keyboard.Listen(Key.Escape, ButtonState.Pressed, Exit, "Lopeta peli");
+
+        //xbox ohjain
+        ControllerOne.Listen(Button.DPadUp, ButtonState.Pressed, Rotate, "Kieritä palikkaa");
+        ControllerOne.Listen(Button.DPadLeft, ButtonState.Pressed, MoveLeft, "Liiku vasemmalle");
+        ControllerOne.Listen(Button.DPadDown, ButtonState.Pressed, FreefallOn, "Nopeasti alas");
+        ControllerOne.Listen(Button.DPadDown, ButtonState.Released, FreefallOff, "");
+        ControllerOne.Listen(Button.DPadRight, ButtonState.Pressed, MoveRight, "Liiku oikealle");
+
+        ControllerOne.Listen(Button.Y, ButtonState.Pressed, Rotate, "Kieritä palikkaa");
+
+        if (!mobile)
+        {
+            ControllerOne.Listen(Button.X, ButtonState.Pressed, HolUpAMinute, "Ota palikka talteen");
+        }
+
+        ControllerOne.Listen(Button.A, ButtonState.Pressed, SlamDown, "Iske alas");
+        ControllerOne.Listen(Button.Start, ButtonState.Pressed, Restart, "Aloita alusta");
+        ControllerOne.Listen(Button.Back, ButtonState.Pressed, Exit, "Lopeta peli");
+
+        SpawnNextShape();
     }
 
 
@@ -96,10 +127,20 @@ public class Tetris : Game
         if (!lost)
         {
             //Tulevat palikat
-            DrawArray(canvas, upcomingArray, new Vector(size * (staticArray.GetLength(0) + 1), size * (staticArray.GetLength(1) - (upcomingArray.GetLength(1) * 2))));
+            if (mobile)
+            {
+                DrawArray(canvas, upcomingArray, new Vector(Screen.Width - size * 7, Screen.Height - size * 8)); //mobiili
+            }
+            else
+            {
+                DrawArray(canvas, upcomingArray, new Vector(size * (staticArray.GetLength(0) + 1), size * (staticArray.GetLength(1) - (upcomingArray.GetLength(1) * 2))));
+            }
 
             //Tallennettu palikka
-            DrawArray(canvas, holdArray, new Vector(-size * (holdArray.GetLength(0) + 1), size * (staticArray.GetLength(1) - (holdArray.GetLength(1) * 2))));
+            if (!mobile)
+            {
+                DrawArray(canvas, holdArray, new Vector(-size * (holdArray.GetLength(0) + 1), size * (staticArray.GetLength(1) - (holdArray.GetLength(1) * 2))));
+            }
         }
 
         //Pistelaskuri (halusin tyylikkäästi skaalautuvan, siksi oma eikä joku valmis tekstipohjainen)
@@ -280,7 +321,7 @@ public class Tetris : Game
     {
         Color[] colors = { Color.White, Color.Cyan, Color.Yellow, Color.Purple, Color.Green, Color.Blue, Color.Red, Color.Orange, Color.DarkGray };
 
-        if(n == 8 && !lost)
+        if (n == 8 && !lost)
         {
             return colors[currentShape + 1];
         }
@@ -956,8 +997,6 @@ public class Tetris : Game
     /// </summary>
     private void SetupGame()
     {
-        size = (int)Screen.Height / 28;
-
         string[] stick = { "0010001000100010", "0000000011110000" };
         string[] block = { "2222" };
         string[] t = { "000333030", "030033030", "030333000", "030330030" };
