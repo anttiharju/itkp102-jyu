@@ -1,5 +1,10 @@
+12.10.2019
+Peli skaalaa paremmin eri resoluutioille
+
+
 11.10.2019
 Korjasin bugin jossa peli kaatui jos palikkaa vaihdettaessa uudella palikalla on vähemmän pyöritysasentoja kuin vanhalla
+
 
 9.10.2019
 Poistin drawArrayn, eihän sitä tarvitse yhdistää samaan arrayyn piirettäväksi kun voi vaan piirtää kaksi eri arrayta
@@ -7,11 +12,13 @@ Poistin drawArrayn, eihän sitä tarvitse yhdistää samaan arrayyn piirettävä
 
 Muutin projektin fysiikkapelistä peruspeliksi
 
+
 8.10.2019
 Nuolinäppäimet toimii taas wasdin lisäksi
 Stickin kiertyminen on kivempi nyt
 
 Holdin pitäisi olla nyt bugiton (ajoitusbugi ja huono alustus korjattu)
+
 
 7.10.2019
 Tulevan palikan näkee oikealla
@@ -72,8 +79,3 @@ Pohja valmiiksi (kommitoitu 4.10)
 todo:
 dokumentaatio kuntoon, nimeäminen kuntoon. Kysy palautetta/neuvoa pääteohjauksessa?
     TIMissä taisi olla jotain kurssin nimeämis/jäsentelykäytänteitä? taisi tulla sähköpostikin.
-ota pisteet talteen ja näytä ne jossain nurkassa
-näytä palikat siististi jonossa oikealla ja kolme kappaletta
-näytä siististi aseteltuna vasemmalla (yhden ruudun väli kenttään)
-MoveLeft ja MoveRight pitäisi saada yhdistettyä MoveHorizontally
-    freefallin tyyliseks eli pohjassa pitämällä liikkuu jatkuvasti
