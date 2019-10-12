@@ -93,11 +93,14 @@ public class Tetris : Game
         DrawArray(canvas, staticArray, Vector.Zero, true);
         DrawArray(canvas, dynamicArray, Vector.Zero);
 
-        //Tulevat palikat
-        DrawArray(canvas, upcomingArray, new Vector(size * (staticArray.GetLength(0) + 1), size * (staticArray.GetLength(1) - (upcomingArray.GetLength(1) * 2))));
+        if (!lost)
+        {
+            //Tulevat palikat
+            DrawArray(canvas, upcomingArray, new Vector(size * (staticArray.GetLength(0) + 1), size * (staticArray.GetLength(1) - (upcomingArray.GetLength(1) * 2))));
 
-        //Tallennettu palikka
-        DrawArray(canvas, holdArray, new Vector(-size * (holdArray.GetLength(0) + 1), size * (staticArray.GetLength(1) - (holdArray.GetLength(1) * 2))));
+            //Tallennettu palikka
+            DrawArray(canvas, holdArray, new Vector(-size * (holdArray.GetLength(0) + 1), size * (staticArray.GetLength(1) - (holdArray.GetLength(1) * 2))));
+        }
 
         //Pistelaskuri (halusin tyylikkäästi skaalautuvan, siksi oma eikä joku valmis tekstipohjainen)
         canvas.BrushColor = NumberToColor(0);
