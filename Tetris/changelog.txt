@@ -5,6 +5,7 @@ Laitoin dokumentaation kuntoon, aliohjelmista tuli poistettua tyhmiä juttuja sa
 Mehustin peliä (pelikentän tausta on tippuvan palikan värinen ja tummanharmaa vain silloin jos peli on loppunut)
 Peli on nyt kokonäytöllä
 
+Laitan tallessa olevan ja tulevan palikan piiloon kun pelin häviää
 
 11.10.2019
 Korjasin bugin jossa peli kaatui jos palikkaa vaihdettaessa uudella palikalla on vähemmän pyöritysasentoja kuin vanhalla
@@ -78,8 +79,3 @@ Keskitin kameran oletusresoluutiolle: ideaalisti pitäisi vain piirtää itse pe
 
 3.10.2019
 Pohja valmiiksi (kommitoitu 4.10)
-
-
-todo:
-dokumentaatio kuntoon, nimeäminen kuntoon. Kysy palautetta/neuvoa pääteohjauksessa?
-    TIMissä taisi olla jotain kurssin nimeämis/jäsentelykäytänteitä? taisi tulla sähköpostikin.
