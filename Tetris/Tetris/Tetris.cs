@@ -1,15 +1,13 @@
-﻿using System;
+﻿using Jypeli;
 using System.Collections.Generic;
-using Jypeli;
-using Jypeli.Assets;
-using Jypeli.Controls;
-using Jypeli.Widgets;
 
 public class Tetris : Game
 {
-    private readonly int size = 50;
-    private readonly int dSize = 22;
+    private int score = 0;
+    private int size;
     private readonly int forcedShape = 0;
+
+    private Color backgroundColor = Color.Black;
 
     private int currentShape = 0;
     private int upcomingShape = 0;
@@ -33,12 +31,15 @@ public class Tetris : Game
     private readonly int[] shapeArraySize = { 4, 2, 3, 3, 3, 3, 3 };
     private readonly string[] shapeStartPositons = { "220", "421", "420", "321", "421", "421", "321" };
     private readonly string[] shapes = { "stick", "block", "t", "worm", "corner", "wormR", "cornerR" };
+    private readonly string[] numberFont = { "111101101101111", "111010010010110", "111100111001111", "111001011001111", "001001111101101", "111001111100111", "111101111100111", "001001011001111", "111101111101111", "111001111101111" };
 
     private List<string[]> shapeStrings = new List<string[]>();
     private List<Vector[]> shapeOffsets = new List<Vector[]>();
 
     public override void Begin()
     {
+        size = (int)Screen.Height / 28;
+
         string[] stick = { "0010001000100010", "0000000011110000" };
         string[] block = { "2222" };
         string[] t = { "000333030", "030033030", "030333000", "030330030" };
@@ -90,14 +91,13 @@ public class Tetris : Game
     protected override void Paint(Canvas canvas)
     {
         //Pelikenttä
+        canvas.BrushColor = NumberToColor(currentShape + 1);
+        canvas.DrawLine(size * -5 - 1, size * -12, size * -5 - 1, size * 8);
+        canvas.DrawLine(size * 5, size * -12, size * 5, size * 8);
+        canvas.DrawLine(size * -5 - 2, size * -12 - 1, size * 5, size * -12 - 1);
+
         DrawArray(canvas, staticArray, 0, 0, true);
         DrawArray(canvas, dynamicArray, 0, 0);
-
-        //sen reunat
-        canvas.BrushColor = Color.DarkGray;
-        canvas.DrawLine(-25, -25, dynamicArray.GetLength(0) * 50 - 25, -25);
-        canvas.DrawLine(-25, -25, -25, (dynamicArray.GetLength(1) - 4) * 50 - 25);
-        canvas.DrawLine(dynamicArray.GetLength(0) * 50 - 25, -25, dynamicArray.GetLength(0) * 50 - 25, (dynamicArray.GetLength(1) - 4) * 50 - 25);
 
         //Tulevat palikat
         DrawArray(canvas, upcomingArray, size * (staticArray.GetLength(0) + 1), size * (staticArray.GetLength(1) - (upcomingArray.GetLength(1) * 2)));
@@ -105,12 +105,24 @@ public class Tetris : Game
         //Tallennettu palikka
         DrawArray(canvas, holdArray, -size * (holdArray.GetLength(0) + 1), size * (staticArray.GetLength(1) - (holdArray.GetLength(1) * 2)));
 
+        //Pistelaskuri (halusin tyylikkäästi skaalautuvan, siksi oma eikä joku valmis tekstipohjainen)
+        canvas.BrushColor = NumberToColor(0);
+        string scoreText = score.ToString();
+
+        for (int i = 0; i < scoreText.Length; i++)
+        {
+            DrawNumber(canvas, scoreText[i] - 48, i);
+        }
+
         base.Paint(canvas);
     }
 
 
     private void DrawArray(Canvas canvas, int[,] array, int positionX, int positionY, bool drawBackground = false)
     {
+        int xOffset = size * -5;
+        int yOffset = size * -12;
+
         for (int x = 0; x < array.GetLength(0); x++)
         {
             for (int y = 0; y < array.GetLength(1); y++)
@@ -122,7 +134,7 @@ public class Tetris : Game
 
                 if (array[x, y] != 0)
                 {
-                    DrawCube(canvas, tx + positionX, ty + positionY);
+                    DrawCube(canvas, tx + positionX + xOffset, ty + positionY + yOffset);
                 }
 
                 if (drawBackground)
@@ -133,15 +145,15 @@ public class Tetris : Game
                         {
                             if (!IsAnythingAbove(x, y, dynamicArray) || IsAnythingAbove(x, y, staticArray))
                             {
-                                canvas.DrawLine(tx - dSize, ty - dSize, tx - dSize, ty + dSize + 1);
-                                canvas.DrawLine(tx + dSize, ty + dSize, tx + dSize, ty - dSize);
-                                canvas.DrawLine(tx - dSize, ty + dSize, tx + dSize, ty + dSize);
-                                canvas.DrawLine(tx + dSize, ty - dSize, tx - dSize - 1, ty - dSize);
+                                canvas.BrushColor = NumberToColor(currentShape + 1);
+                                DrawCube(canvas, tx + xOffset, ty + yOffset);
+                                canvas.BrushColor = backgroundColor;
+                                DrawCube(canvas, tx + xOffset, ty + yOffset, 1);
                             }
                         }
                         else
                         {
-                            DrawCube(canvas, tx, ty);
+                            DrawCube(canvas, tx + xOffset, ty + yOffset);
                         }
                     }
                 }
@@ -150,11 +162,30 @@ public class Tetris : Game
     }
 
 
-    private void DrawCube(Canvas canvas, int tx, int ty)
+    private void DrawCube(Canvas canvas, int tx, int ty, int offset = 0)
     {
-        for (int i = 0; i < size; i++)
+        for (int i = 0 + offset; i < size - offset; i++)
         {
-            canvas.DrawLine(tx - size / 2 + i, ty - size / 2, tx - size / 2 + i, ty + size / 2);
+            canvas.DrawLine(tx + i, ty + offset, tx + i, ty + size - offset);
+        }
+    }
+
+    private void DrawNumber(Canvas canvas, int n, int xOffset = 0)
+    {
+        string s = numberFont[n];
+
+        int index = 0;
+
+        for (int y = 0; y < 5; y++)
+        {
+            for (int x = 0; x < 3; x++)
+            {
+                if (s[index] == '1')
+                {
+                    DrawCube(canvas, x * size / 2 - (int)(Screen.Width / 2) + size * 2 * xOffset, y * size / 2 + (int)(Screen.Height / 2) - size * 3, size / 4);
+                }
+                index++;
+            }
         }
     }
 
@@ -222,7 +253,7 @@ public class Tetris : Game
     /// <returns>Numeroa vastaavan värin</returns>
     public static Color NumberToColor(int n)
     {
-        Color[] colors = { Color.DarkGray, Color.Cyan, Color.Yellow, Color.Purple, Color.Green, Color.Blue, Color.Red, Color.Orange };
+        Color[] colors = { Color.White, Color.Cyan, Color.Yellow, Color.Purple, Color.Green, Color.Blue, Color.Red, Color.Orange };
 
         return colors[n];
     }
@@ -341,6 +372,7 @@ public class Tetris : Game
         staticArray = Set2DArray(staticArray);
         holdArray = Set2DArray(holdArray);
         heldShape = 0;
+        score = 0;
         SpawnNextShape();
     }
 
@@ -413,7 +445,7 @@ public class Tetris : Game
         {
             for (int y = 0; y < array.GetLength(0); y++)
             {
-                if(array[x,y ] != 0)
+                if (array[x, y] != 0)
                 {
                     return false;
                 }
@@ -673,7 +705,7 @@ public class Tetris : Game
             if (full)
             {
                 DestroyLine(y);
-                MessageDisplay.Add("sait pisteen!");
+                score++; //sait pisteen
 
                 linesToRemove.Add(y);
             }
@@ -722,8 +754,7 @@ public class Tetris : Game
         }
         else
         {
-            MessageDisplay.Add("Hävisit pelin!");
-            lost = true;
+            lost = true; //hävisit pelin
         }
     }
 
@@ -797,10 +828,10 @@ public class Tetris : Game
     /// </summary>
     private void SetupGame()
     {
-        Camera.Zoom(0.5);
-        Camera.X = 224;
-        Camera.Y = 477;
-        Level.BackgroundColor = Color.Black;
+        //Camera.Zoom(0.5);
+        //Camera.X = 224;
+        //Camera.Y = 477;
+        Level.BackgroundColor = backgroundColor;
 
         if (forcedShape == 0)
         {
