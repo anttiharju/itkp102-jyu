@@ -1,6 +1,10 @@
 12.10.2019
 Peli skaalaa paremmin eri resoluutioille
 
+Laitoin dokumentaation kuntoon, aliohjelmista tuli poistettua tyhmiä juttuja samalla (pitäisi toimia prikulleen samoten kuin ennen)
+Mehustin peliä (pelikentän tausta on tippuvan palikan värinen ja tummanharmaa vain silloin jos peli on loppunut)
+Peli on nyt kokonäytöllä
+
 
 11.10.2019
 Korjasin bugin jossa peli kaatui jos palikkaa vaihdettaessa uudella palikalla on vähemmän pyöritysasentoja kuin vanhalla
