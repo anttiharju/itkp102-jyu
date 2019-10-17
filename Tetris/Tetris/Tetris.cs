@@ -30,7 +30,7 @@ public class Tetris : Game
     private int nextShape = 0;
 
     private readonly int[] shapeArraySize = { 4, 2, 3, 3, 3, 3, 3 };
-    private readonly string[] shapeStartPositons = { "220", "421", "420", "321", "421", "421", "321" };
+    private readonly string[] shapeStartPositons = { "220", "421", "420", "321", "420", "421", "321" };
     private readonly string[] shapes = { "stick", "block", "t", "worm", "corner", "wormR", "cornerR" };
     private readonly string[] numberFont = { "111101101101111", "111010010010110", "111100111001111", "111001011001111", "001001111101101", "111001111100111", "111101111100111", "001001011001111", "111101111101111", "111001111101111" };
 
@@ -254,22 +254,26 @@ public class Tetris : Game
     /// </summary>
     private void Update()
     {
-        if (spawn)
+        if (spawn || spawnHeldBlock)
         {
-            SpawnNextShape();
-            spawn = false;
+            if (spawnHeldBlock)
+            {
+                SpawnNextShape(nextShape, updateHold);
+                nextShape = 0;
+                updateHold = true;
+                spawnHeldBlock = false;
+                canHold = false;
+            }
+            if (spawn)
+            {
+                SpawnNextShape();
+                spawn = false;
+            }
         }
-
-        if (spawnHeldBlock)
+        else
         {
-            SpawnNextShape(nextShape, updateHold);
-            nextShape = 0;
-            updateHold = true;
-            spawnHeldBlock = false;
-            canHold = false;
+            MoveDown();
         }
-
-        MoveDown();
     }
 
 
