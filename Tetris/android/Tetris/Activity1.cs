@@ -5,7 +5,7 @@ using Android.Views;
 
 namespace Tetris
 {
-    [Activity(Label = "Tetris"
+    [Activity(Label = "Tippuvat Palikat"
         , MainLauncher = true
         , Icon = "@drawable/icon"
         , Theme = "@style/Theme.Splash"
@@ -18,7 +18,7 @@ namespace Tetris
         protected override void OnCreate(Bundle bundle)
         {
             base.OnCreate(bundle);
-            var g = new TetrisGame();
+            var g = new TippuvatPalikatGame();
             SetContentView((View)g.Services.GetService(typeof(View)));
             g.Run();
         }

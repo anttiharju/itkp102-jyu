@@ -1,7 +1,13 @@
+22.10.2019
+Android ja työpöytäversio jakavat lähes saman koodin
+Julkaistu play-kauppaan (menee hetki ennen kuin saatavilla)
+
+
 17.10.2019
 Hienosäädetty putoamiskorkeutta (logiikka pelaa muulloinkin kuin pelin alkaessa just oikein)
 
 TODO: https://tim.jyu.fi/view/kurssit/tie/ohj1/materiaali/koodauskaytanteet
+
 
 12.10.2019
 Peli skaalaa paremmin eri resoluutioille

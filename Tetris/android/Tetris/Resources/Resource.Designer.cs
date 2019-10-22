@@ -9,9 +9,9 @@
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-[assembly: global::Android.Runtime.ResourceDesignerAttribute("Tetris.Resource", IsApplication=true)]
+[assembly: global::Android.Runtime.ResourceDesignerAttribute("TippuvatPalikat.Resource", IsApplication=true)]
 
-namespace Tetris
+namespace TippuvatPalikat
 {
 	
 	
