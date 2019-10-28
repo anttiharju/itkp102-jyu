@@ -5,8 +5,8 @@ public class Tetris : Game
 {
     private int score = 0;
     private int size;
-    private const int forcedShape = 0;
-    private const bool mobile = false;
+    private int forcedShape = 0;
+    private bool mobile = false;
 
     private Color backgroundColor = Color.Black;
 
