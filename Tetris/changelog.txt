@@ -1,3 +1,7 @@
+28.10.2019
+Poistin const parista muuttujasta niin ei ide vikise
+
+
 22.10.2019
 Android ja työpöytäversio jakavat lähes saman koodin
 Julkaistu play-kauppaan (menee hetki ennen kuin saatavilla)
