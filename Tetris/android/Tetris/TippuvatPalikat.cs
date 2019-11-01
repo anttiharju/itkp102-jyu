@@ -43,17 +43,33 @@ public class TippuvatPalikatGame : Game
     private double rotateTimer = 0;
     private double downTimer = 0;
 
+    SoundEffect leftSound = LoadSoundEffect("piu");
+    SoundEffect rightSound = LoadSoundEffect("pau");
+    SoundEffect rotateSound = LoadSoundEffect("pom");
+    SoundEffect downSound = LoadSoundEffect("pam");
+    SoundEffect saveSound = LoadSoundEffect("pou");
+    SoundEffect destroySound = LoadSoundEffect("tuuuuf");
+    SoundEffect loseSound = LoadSoundEffect("pompompompoo");
+    SoundEffect restartSound = LoadSoundEffect("p‰d‰m");
+    SoundEffect[] tiktokSound = { LoadSoundEffect("tik"), LoadSoundEffect("tok") };
+    private bool tik = true;
+
     public override void Begin()
     {
         if (mobile)
         {
-            //SetWindowSize(540, 960, false);
+            //SetWindowSize(540, 960, false); //kommentoi pois buildatessa androidille
             size = (int)Screen.Height / 30;
         }
         else
         {
             IsFullScreen = true;
             size = (int)Screen.Height / 30;
+            MessageDisplay.Add("");
+            MessageDisplay.Add("");
+            MessageDisplay.Add("");
+            MessageDisplay.Add("");
+            MessageDisplay.Add("Paina F1 n‰hd‰ksesi n‰pp‰inkomennot");
         }
 
         SetupGame();
@@ -77,8 +93,8 @@ public class TippuvatPalikatGame : Game
         //xbox ohjain
         ControllerOne.Listen(Button.DPadUp, ButtonState.Pressed, Rotate, "Kierit‰ palikkaa");
         ControllerOne.Listen(Button.DPadLeft, ButtonState.Pressed, MoveLeft, "Liiku vasemmalle");
-        ControllerOne.Listen(Button.DPadDown, ButtonState.Pressed, FreefallOn, "Nopeasti alas");
-        ControllerOne.Listen(Button.DPadDown, ButtonState.Released, FreefallOff, "");
+        ControllerOne.Listen(Button.DPadDown, ButtonState.Pressed, FreefallToggle, "Nopeasti alas", true);
+        ControllerOne.Listen(Button.DPadDown, ButtonState.Released, FreefallToggle, "", false);
         ControllerOne.Listen(Button.DPadRight, ButtonState.Pressed, MoveRight, "Liiku oikealle");
 
         ControllerOne.Listen(Button.Y, ButtonState.Pressed, Rotate, "Kierit‰ palikkaa");
@@ -103,6 +119,10 @@ public class TippuvatPalikatGame : Game
     }
 
 
+    /// <summary>
+    /// Kosketusn‰yttˆohjaukset android versiota varten
+    /// </summary>
+    /// <param name="kosketus">kosketus parametri</param>
     private void TouchControls(Touch kosketus)
     {
         if (activeTouch == null)
@@ -151,6 +171,10 @@ public class TippuvatPalikatGame : Game
     }
 
 
+    /// <summary>
+    /// Lopettaa kosketuksen
+    /// </summary>
+    /// <param name="kosketus">kosketus parametri</param>
     private void UnTouch(Touch kosketus)
     {
         if (kosketus == activeTouch)
@@ -158,6 +182,9 @@ public class TippuvatPalikatGame : Game
     }
 
 
+    /// <summary>
+    /// Ajastimia eri kosketustoimintoja varten
+    /// </summary>
     private void TouchLoop()
     {
         if (movementTimer > 0)
@@ -191,8 +218,8 @@ public class TippuvatPalikatGame : Game
     {
         Keyboard.Listen(up, ButtonState.Pressed, Rotate, "Kierit‰ palikkaa");
         Keyboard.Listen(left, ButtonState.Pressed, MoveLeft, "Liiku vasemmalle");
-        Keyboard.Listen(down, ButtonState.Pressed, FreefallOn, "Nopeasti alas");
-        Keyboard.Listen(down, ButtonState.Released, FreefallOff, "");
+        Keyboard.Listen(down, ButtonState.Pressed, FreefallToggle, "Nopeasti alas", true);
+        Keyboard.Listen(down, ButtonState.Released, FreefallToggle, "", false);
         Keyboard.Listen(right, ButtonState.Pressed, MoveRight, "Liiku oikealle");
     }
 
@@ -203,7 +230,7 @@ public class TippuvatPalikatGame : Game
     /// <param name="canvas">pelin canvas</param>
     protected override void Paint(Canvas canvas)
     {
-        //Pelikentt‰
+        //Pelikent‰n reunat
         canvas.BrushColor = NumberToColor(8);
         canvas.DrawLine(size * -5 - 1, size * -12, size * -5 - 1, size * 8);
         canvas.DrawLine(size * 5, size * -12, size * 5, size * 8);
@@ -224,7 +251,7 @@ public class TippuvatPalikatGame : Game
                 DrawArray(canvas, upcomingArray, new Vector(size * (staticArray.GetLength(0) + 1), size * (staticArray.GetLength(1) - (upcomingArray.GetLength(1) * 2))));
             }
 
-            //Tallennettu palikka
+            //Tallennettu palikka (poistettu mobiiliversiosta)
             if (!mobile)
             {
                 DrawArray(canvas, holdArray, new Vector(-size * (holdArray.GetLength(0) + 1), size * (staticArray.GetLength(1) - (holdArray.GetLength(1) * 2))));
@@ -265,7 +292,7 @@ public class TippuvatPalikatGame : Game
                 int scaledX = x * size;
                 int scaledY = y * size;
 
-                if (array[x, y] != 0)
+                if (array[x, y] != 0) //piirt‰‰ kuutiot
                 {
                     DrawCube(canvas, new Vector(scaledX + (int)position.X + xOffset, scaledY + (int)position.Y + yOffset));
                 }
@@ -274,7 +301,7 @@ public class TippuvatPalikatGame : Game
                 {
                     if (y < 20 || array[x, y] != 0)
                     {
-                        if (array[x, y] == 0)
+                        if (array[x, y] == 0) //piirt‰‰ taustalle ruudukon
                         {
                             if (!IsAnythingAbove(new Vector(x, y), dynamicArray) || IsAnythingAbove(new Vector(x, y), staticArray))
                             {
@@ -284,15 +311,12 @@ public class TippuvatPalikatGame : Game
                                 DrawCube(canvas, new Vector(scaledX + xOffset, scaledY + yOffset), 1);
                             }
                         }
-                        else
-                        {
-                            DrawCube(canvas, new Vector(scaledX + xOffset, scaledY + yOffset));
-                        }
                     }
                 }
             }
         }
     }
+
 
     /// <summary>
     /// Jypeliss‰ ei ollut valmista funktiota jolla piirt‰‰
@@ -360,7 +384,11 @@ public class TippuvatPalikatGame : Game
         }
         else
         {
-            MoveDown();
+            if (!lost)
+            {
+                Tiktok();
+                MoveDown();
+            }
         }
     }
 
@@ -389,12 +417,31 @@ public class TippuvatPalikatGame : Game
 
 
     /// <summary>
+    /// Luo taustalle tikitt‰v‰‰ ‰‰nt‰, ei haluta k‰ytt‰‰ koko aika samaa ‰‰nt‰, ett‰ siin‰ on tietynlainen rytmi
+    /// </summary>
+    private void Tiktok()
+    {
+        if (tik)
+        {
+            tiktokSound[0].Play();
+            tik = false;
+        }
+        else
+        {
+            tiktokSound[1].Play();
+            tik = true;
+        }
+    }
+
+
+    /// <summary>
     /// Timerilla tehty looppi, halusin pysty‰ hienos‰‰t‰m‰‰n tippumisen nopeutta.
     /// </summary>
     private void FreefallLoop()
     {
-        if (freefall)
+        if (freefall && !lost)
         {
+            Tiktok();
             bool stop = MoveDown();
             if (stop)
             {
@@ -526,33 +573,25 @@ public class TippuvatPalikatGame : Game
     /// </summary>
     private void Restart()
     {
+        restartSound.Play();
         lost = false;
         SetArrayToZero(dynamicArray);
         SetArrayToZero(staticArray);
         currentShape = RandomGen.NextInt(shapes.Length);
         upcomingShape = RandomGen.NextInt(shapes.Length);
         SetArrayToZero(holdArray);
-        heldShape = 0;
+        heldShape = -1;
         score = 0;
         SpawnNextShape();
     }
 
 
     /// <summary>
-    /// Kytkee nopean tippumisen p‰‰lle
+    /// Kytkee nopean tippumisen p‰‰lle / pois p‰‰lt‰
     /// </summary>
-    private void FreefallOn()
+    private void FreefallToggle(bool state)
     {
-        freefall = true;
-    }
-
-
-    /// <summary>
-    /// Kytkee nopean tippumisen pois p‰‰lt‰
-    /// </summary>
-    private void FreefallOff()
-    {
-        freefall = false;
+        freefall = state;
     }
 
 
@@ -564,7 +603,8 @@ public class TippuvatPalikatGame : Game
     {
         if (canHold && !lost && heldShape != currentShape)
         {
-            nextShape = 0;
+            saveSound.Play();
+            nextShape = -1;
             updateHold = true;
 
             if (heldShape == -1)
@@ -593,14 +633,18 @@ public class TippuvatPalikatGame : Game
     /// </summary>
     private void SlamDown()
     {
-        if (FindStartPosition(dynamicArray) != -Vector.One) //pit‰‰ olla jotakin mit‰ liikuttaa alas tai j‰‰d‰‰n jumiin
+        if (!lost)
         {
-            while (true)
+            if (FindStartPosition(dynamicArray) != -Vector.One) //pit‰‰ olla jotakin mit‰ liikuttaa alas tai j‰‰d‰‰n jumiin
             {
-                bool stop = MoveDown();
-                if (stop)
+                downSound.Play();
+                while (true)
                 {
-                    break;
+                    bool stop = MoveDown();
+                    if (stop)
+                    {
+                        break;
+                    }
                 }
             }
         }
@@ -612,11 +656,15 @@ public class TippuvatPalikatGame : Game
     /// </summary>
     private void Rotate()
     {
-        if (IsArrayEmpty(dynamicArray) || CanRotate(dynamicArray, staticArray, currentRotation, currentShape, shapeStrings, shapeArraySize, shapeOffsets))
+        if (!lost)
         {
-            var result = RotateInArray(dynamicArray, currentRotation, currentShape, shapeStrings, shapeArraySize, shapeOffsets);
-            dynamicArray = result.array;
-            currentRotation = result.currentRotation;
+            if ((IsArrayEmpty(dynamicArray) || CanRotate(dynamicArray, staticArray, currentRotation, currentShape, shapeStrings, shapeArraySize, shapeOffsets)) && currentShape != 1)
+            {
+                var result = RotateInArray(dynamicArray, currentRotation, currentShape, shapeStrings, shapeArraySize, shapeOffsets);
+                dynamicArray = result.array;
+                currentRotation = result.currentRotation;
+                rotateSound.Play();
+            }
         }
     }
 
@@ -758,8 +806,9 @@ public class TippuvatPalikatGame : Game
     /// </summary>
     private void MoveLeft()
     {
-        if (CanMoveHorizontally(staticArray, dynamicArray, 0, -1))
+        if (CanMoveHorizontally(staticArray, dynamicArray, 0, -1) && !lost)
         {
+            leftSound.Play();
             for (int x = 0; x < dynamicArray.GetLength(0); x++)
             {
                 for (int y = 0; y < dynamicArray.GetLength(1); y++)
@@ -783,8 +832,9 @@ public class TippuvatPalikatGame : Game
     /// </summary>
     private void MoveRight()
     {
-        if (CanMoveHorizontally(staticArray, dynamicArray, 9, 1))
+        if (CanMoveHorizontally(staticArray, dynamicArray, 9, 1) && !lost)
         {
+            rightSound.Play();
             for (int x = dynamicArray.GetLength(0) - 1; x >= 0; x--)
             {
                 for (int y = 0; y < dynamicArray.GetLength(1); y++)
@@ -947,6 +997,7 @@ public class TippuvatPalikatGame : Game
 
         for (int i = 0; i < linesToRemove.Count; i++)
         {
+            destroySound.Play();
             MoveDownFromY(linesToRemove[i] - i);
         }
     }
@@ -1002,7 +1053,21 @@ public class TippuvatPalikatGame : Game
         }
         else
         {
+            loseSound.Play();
             lost = true; //h‰visit pelin
+            MessageDisplay.Add("");
+            MessageDisplay.Add("");
+            MessageDisplay.Add("");
+            MessageDisplay.Add("");
+            MessageDisplay.Add("H‰visit pelin :-(");
+            if (mobile)
+            {
+                MessageDisplay.Add("Kosketa ruudun yl‰reunaa aloittaaksesi alusta!");
+            }
+            else
+            {
+                MessageDisplay.Add("Paina R aloittaaksesi alusta!");
+            }
         }
     }
 
