@@ -1,10 +1,10 @@
 1.11.2019
 Freefall koodista poistettu toistoa
 Korjattu bugi joka esti tikkujen ottamisen talteen tietyissä tilanteissa
-Lisätty mielipuoliset ääniefektit                                  
-Tiedossa on bugi jonka takia palikat saattavat joskus pyörähtää muiden palikoiden sisään
-Android versio ei ottanut vikisemättä ääniefektejä joten en päivitä android versiota
-Dokumentaatio kunnostettu
+Lisätty mielipuoliset ääniefektit                                
+BUGI: Palikat pyörähtää välillä kun niiden ei pitäisi pystyä
+
+korjasin changelogin mergen jäljiltä
 
 
 28.10.2019
@@ -105,3 +105,10 @@ Keskitin kameran oletusresoluutiolle: ideaalisti pitäisi vain piirtää itse pe
 
 3.10.2019
 Pohja valmiiksi (kommitoitu 4.10)
+
+
+
+TODO: Ohjeita pelaajalle pelin uudelleen aloitukseen
+TODO: Dokumentaatio android aliohjelmille myös
+TODO: Muuta android ohjausta, (gesturehomma, tap to rotate)
+TODO: https://tim.jyu.fi/view/kurssit/tie/ohj1/materiaali/koodauskaytanteet
