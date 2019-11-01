@@ -6,6 +6,8 @@ BUGI: Palikat pyörähtää välillä kun niiden ei pitäisi pystyä
 
 korjasin changelogin mergen jäljiltä
 
+pädäm.wav -> padam.wav
+
 
 28.10.2019
 Poistin const parista muuttujasta niin ei ide vikise
