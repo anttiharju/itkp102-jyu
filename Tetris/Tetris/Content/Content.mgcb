@@ -14,11 +14,11 @@
 
 #---------------------------------- Content ---------------------------------#
 
-#begin pädäm.wav
+#begin padam.wav
 /importer:WavImporter
 /processor:SoundEffectProcessor
 /processorParam:Quality=Best
-/build:pädäm.wav
+/build:padam.wav
 
 #begin pam.wav
 /importer:WavImporter
@@ -61,18 +61,6 @@
 /processor:SoundEffectProcessor
 /processorParam:Quality=Best
 /build:tik.wav
-
-#begin tik.wav
-/importer:WavImporter
-/processor:SoundEffectProcessor
-/processorParam:Quality=Best
-/build:tik.wav
-
-#begin tok.wav
-/importer:WavImporter
-/processor:SoundEffectProcessor
-/processorParam:Quality=Best
-/build:tok.wav
 
 #begin tok.wav
 /importer:WavImporter

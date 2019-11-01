@@ -50,7 +50,7 @@ public class Tetris : Game
     SoundEffect saveSound = LoadSoundEffect("pou");
     SoundEffect destroySound = LoadSoundEffect("tuuuuf");
     SoundEffect loseSound = LoadSoundEffect("pompompompoo");
-    SoundEffect restartSound = LoadSoundEffect("pädäm");
+    SoundEffect restartSound = LoadSoundEffect("padam");
     SoundEffect[] tiktokSound = { LoadSoundEffect("tik"), LoadSoundEffect("tok") };
     private bool tik = true;
 
