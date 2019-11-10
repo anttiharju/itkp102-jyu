@@ -1,0 +1,76 @@
+
+#----------------------------- Global Properties ----------------------------#
+
+/outputDir:bin/$(Platform)
+/intermediateDir:obj/$(Platform)
+/platform:DesktopGL
+/config:
+/profile:Reach
+/compress:False
+
+#-------------------------------- References --------------------------------#
+
+/reference:C:\Program Files (x86)\MonoJypeli\ContentExtensions\TextFileContentExtension.dll
+
+#---------------------------------- Content ---------------------------------#
+
+#begin ../../TippuvatPalikat/Content/padam.wav
+/importer:WavImporter
+/processor:SoundEffectProcessor
+/processorParam:Quality=Best
+/build:../../TippuvatPalikat/Content/padam.wav;padam.wav
+
+#begin ../../TippuvatPalikat/Content/pam.wav
+/importer:WavImporter
+/processor:SoundEffectProcessor
+/processorParam:Quality=Best
+/build:../../TippuvatPalikat/Content/pam.wav;pam.wav
+
+#begin ../../TippuvatPalikat/Content/pau.wav
+/importer:WavImporter
+/processor:SoundEffectProcessor
+/processorParam:Quality=Best
+/build:../../TippuvatPalikat/Content/pau.wav;pau.wav
+
+#begin ../../TippuvatPalikat/Content/piu.wav
+/importer:WavImporter
+/processor:SoundEffectProcessor
+/processorParam:Quality=Best
+/build:../../TippuvatPalikat/Content/piu.wav;piu.wav
+
+#begin ../../TippuvatPalikat/Content/pom.wav
+/importer:WavImporter
+/processor:SoundEffectProcessor
+/processorParam:Quality=Best
+/build:../../TippuvatPalikat/Content/pom.wav;pom.wav
+
+#begin ../../TippuvatPalikat/Content/pompompompoo.wav
+/importer:WavImporter
+/processor:SoundEffectProcessor
+/processorParam:Quality=Best
+/build:../../TippuvatPalikat/Content/pompompompoo.wav;pompompompoo.wav
+
+#begin ../../TippuvatPalikat/Content/pou.wav
+/importer:WavImporter
+/processor:SoundEffectProcessor
+/processorParam:Quality=Best
+/build:../../TippuvatPalikat/Content/pou.wav;pou.wav
+
+#begin ../../TippuvatPalikat/Content/tik.wav
+/importer:WavImporter
+/processor:SoundEffectProcessor
+/processorParam:Quality=Best
+/build:../../TippuvatPalikat/Content/tik.wav;tik.wav
+
+#begin ../../TippuvatPalikat/Content/tok.wav
+/importer:WavImporter
+/processor:SoundEffectProcessor
+/processorParam:Quality=Best
+/build:../../TippuvatPalikat/Content/tok.wav;tok.wav
+
+#begin ../../TippuvatPalikat/Content/tuuuuf.wav
+/importer:WavImporter
+/processor:SoundEffectProcessor
+/processorParam:Quality=Best
+/build:../../TippuvatPalikat/Content/tuuuuf.wav;tuuuuf.wav
+

@@ -1,0 +1,6 @@
+10.11 tehdyn uudelleenjärjestelyn takia nimesin paljon asioita uusiksi mutta koska ohjaaja
+oli ottanut versionhallinta linkin talteen niin että se sisälsi tetris kansion on tämä
+täällä ohjaamassa sinut sinne.
+
+Nimenvaihto tetris -> tippuvatpalikat johtuu tekijänoikeusasioista vaikka se tuskin
+täällä kurssin sisällä haittaisi.
