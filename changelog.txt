@@ -1,3 +1,21 @@
+11.11.2019
+Automaattinen restart (ohjaaja halusi jotain tapahtuvan kun pelin häviää niin nyt siihen tulee laskuri joka mentyään nollaan aloittaa pelin alusta)
+    Tästä tuli itse asiassa aika cool ja vieläpä ääniefektit apuna
+DrawNumber -> DrawStringCharacter
+    Yritin alunperin säätää custom fonttia tänne sillä default fontit (tai mitkä vaan) on kaiken pahan alku ja juuri ja pelin saa näyttämään
+    enemmän omalta (lue: laadukkaammalta) mitä vähemmän siinä on käytetyn työkalun defaultteja
+    Tekstit, numerot ym on tallennettuna merkkijonoihin ykkösinä ja nollina, toimii androidilla eikä vaadi content säätöä sen kummallisemmin
+    joten olen tyytyväinen
+pam ääni kuuluu silloin kun palikka siirtyy dynamicArraysta staticArrayyn (ennen vain lyödessä palikan alas)
+    rikkaampi äänimaailma vaikka aika meemi ääniä ovatkin
+Poistettu turhat MessageDisplay tekstit sillä ei se on defaulttijuttuja jypelistä
+    jätin kuitenkin F1 showcontrolhelp sillä mahdollisesti ohjaajat/opettajat yrittävät sitä painaa
+Painamalla P voi pelin pausettaa
+    phonebackbutton muutettu pauseksi, kaikissa puhelimissa sitä ei kai ole(?) mutta peli on pelattava vaikkei sitä olisikaan
+    nyt kun restart on automaattinen
+Paljon pikkusäätöä en muista tarkasti kaikkea
+
+
 10.11.2019
 Uudelleenjärjestelyä, vain yksi solution jossa windows ja android projektit
 Äänifilut nyt järkevästi tallessa (vain kerran, projekti toimii suoraan versionhallinnasta ladattuna)
