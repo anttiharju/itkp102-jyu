@@ -15,6 +15,8 @@ Painamalla P voi pelin pausettaa
     nyt kun restart on automaattinen
 Paljon pikkusäätöä en muista tarkasti kaikkea
 
+Korjasin android sovelluksen nimen
+
 
 10.11.2019
 Uudelleenjärjestelyä, vain yksi solution jossa windows ja android projektit

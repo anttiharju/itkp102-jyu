@@ -5,7 +5,7 @@ using Android.Views;
 
 namespace TippuvatPalikatAndroid
 {
-    [Activity(Label = "TippuvatPalikatAndroid"
+    [Activity(Label = "Tippuvat Palikat"
         , MainLauncher = true
         , Icon = "@drawable/icon"
         , Theme = "@style/Theme.Splash"
