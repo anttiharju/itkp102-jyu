@@ -8,7 +8,12 @@ public class TippuvatPalikat : Game
 public class TippuvatPalikatAndroidGame : Game
 #endif
 {
+    private Timer updateTimer;
+    private Timer automaticRestartTimer;
+
     private int score = 0;
+    private int automaticRestartTime = 5;
+    private int automaticRestartTimeReset;
     private int size;
 
     private Color backgroundColor = Color.Black;
@@ -33,22 +38,23 @@ public class TippuvatPalikatAndroidGame : Game
     private readonly int[] shapeArraySize = { 4, 2, 3, 3, 3, 3, 3 };
     private readonly string[] shapeStartPositons = { "220", "421", "420", "321", "420", "421", "321" };
     private readonly string[] shapes = { "stick", "block", "t", "worm", "corner", "wormR", "cornerR" };
-    private readonly string[] numberFont = { "111101101101111", "111010010010110", "111100111001111", "111001011001111", "001001111101101", "111001111100111", "111101111100111", "001001011001111", "111101111101111", "111001111101111" };
+    private readonly string[] numberFont = { "111101101101111", "110010010010111", "111001111100111", "111001111001111", "101101111001001", "111100111001111", "111100111101111", "111001011001001", "111101111101111", "111101111001111" };
+    private readonly string restartText = "111011101110111011101110111101010001000010010101010010111011001110010011101110010110010000010010010101100010101011101110010010101010010";
 
     private List<string[]> shapeStrings = new List<string[]>();
     private List<Vector[]> shapeOffsets = new List<Vector[]>();
-#if WINDOWS
-    private int[,] holdArray = new int[4, 4];
-    private int heldShape = -1;
-    private bool canHold = true;
-    private readonly SoundEffect saveSound = LoadSoundEffect("pou");
-#endif
 #if ANDROID
     private Touch activeTouch = null;
     private double movementTimer = 0;
     private double restartTimer = 0;
     private double rotateTimer = 0;
     private double downTimer = 0;
+#endif
+#if WINDOWS
+    private int[,] holdArray = new int[4, 4];
+    private int heldShape = -1;
+    private bool canHold = true;
+    private readonly SoundEffect saveSound = LoadSoundEffect("pou");
 #endif
     private readonly SoundEffect leftSound = LoadSoundEffect("piu");
     private readonly SoundEffect rightSound = LoadSoundEffect("pau");
@@ -58,6 +64,7 @@ public class TippuvatPalikatAndroidGame : Game
     private readonly SoundEffect loseSound = LoadSoundEffect("pompompompoo");
     private readonly SoundEffect restartSound = LoadSoundEffect("padam");
     private readonly SoundEffect[] tiktokSound = { LoadSoundEffect("tik"), LoadSoundEffect("tok") };
+    private readonly SoundEffect[] pauseSound = { LoadSoundEffect("holdbreath"), LoadSoundEffect("letitgo") };
 
     private bool tik = true;
 
@@ -65,17 +72,7 @@ public class TippuvatPalikatAndroidGame : Game
     {
 #if WINDOWS
         IsFullScreen = true;
-        size = (int)Screen.Height / 30;
-        MessageDisplay.Add("");
-        MessageDisplay.Add("");
-        MessageDisplay.Add("");
-        MessageDisplay.Add("");
-        MessageDisplay.Add("Paina F1 nähdäksesi näppäinkomennot");
 #endif
-#if ANDROID
-            size = (int)Screen.Height / 30;
-#endif
-
         SetupGame();
         SetupArrays();
         SetupLoops();
@@ -84,6 +81,7 @@ public class TippuvatPalikatAndroidGame : Game
         SetupDirections(Key.W, Key.A, Key.S, Key.D);
         SetupDirections(Key.Up, Key.Left, Key.Down, Key.Right);
 
+        Keyboard.Listen(Key.P, ButtonState.Pressed, Pause, "Laita peli tauolle");
         Keyboard.Listen(Key.Space, ButtonState.Pressed, SlamDown, "Iske alas");
         Keyboard.Listen(Key.R, ButtonState.Pressed, Restart, "Aloita alusta");
         Keyboard.Listen(Key.F1, ButtonState.Pressed, ShowControlHelp, "Näytä ohjeet");
@@ -100,7 +98,7 @@ public class TippuvatPalikatAndroidGame : Game
 
         ControllerOne.Listen(Button.A, ButtonState.Pressed, SlamDown, "Iske alas");
         ControllerOne.Listen(Button.Start, ButtonState.Pressed, Restart, "Aloita alusta");
-        ControllerOne.Listen(Button.Back, ButtonState.Pressed, Exit, "Lopeta peli");
+        ControllerOne.Listen(Button.Back, ButtonState.Pressed, Pause, "Laita peli tauolle");
 #if WINDOWS
         Keyboard.Listen(Key.Q, ButtonState.Pressed, HolUpAMinute, "Ota palikka talteen");
         ControllerOne.Listen(Button.X, ButtonState.Pressed, HolUpAMinute, "Ota palikka talteen");
@@ -108,7 +106,7 @@ public class TippuvatPalikatAndroidGame : Game
 #if ANDROID
         TouchPanel.Listen(ButtonState.Down, TouchControls, "Liikuttaa pelaajaa");
         TouchPanel.Listen(ButtonState.Released, UnTouch, null);
-        PhoneBackButton.Listen(Restart, "Aloita alusta");
+        PhoneBackButton.Listen(Pause, "Laita peli tauolle");
 #endif
         SpawnNextShape();
     }
@@ -121,16 +119,8 @@ public class TippuvatPalikatAndroidGame : Game
     /// <param name="kosketus">kosketus parametri</param>
     private void TouchControls(Touch kosketus)
     {
-        if (activeTouch == null)
-        {
-            // Ei edellistä kosketusta, tehdään tästä nykyinen
-            activeTouch = kosketus;
-        }
-        else if (kosketus != activeTouch)
-        {
-            // Kosketus eri sormella
-            return;
-        }
+        if (activeTouch == null) activeTouch = kosketus;
+        else if (kosketus != activeTouch) return;
 
         if (restartTimer <= 0 && activeTouch.PositionOnScreen.Y > 0)
         {
@@ -152,18 +142,16 @@ public class TippuvatPalikatAndroidGame : Game
             }
         }
         if (rotateTimer <= 0)
-        {
             if (activeTouch.MovementOnWorld.Y > 20)
             {
                 Rotate();
                 rotateTimer = 0.2;
             }
-        }
         if (activeTouch.MovementOnWorld.Y < -20)
         {
+            Tiktok();
             MoveDown();
         }
-
     }
 
 
@@ -173,8 +161,7 @@ public class TippuvatPalikatAndroidGame : Game
     /// <param name="kosketus">kosketus parametri</param>
     private void UnTouch(Touch kosketus)
     {
-        if (kosketus == activeTouch)
-            activeTouch = null;
+        if (kosketus == activeTouch) activeTouch = null;
     }
 
 
@@ -183,24 +170,13 @@ public class TippuvatPalikatAndroidGame : Game
     /// </summary>
     private void TouchLoop()
     {
-        if (movementTimer > 0)
-        {
-            movementTimer -= 0.01;
-        }
-        if (restartTimer > 0)
-        {
-            restartTimer -= 0.01;
-        }
-        if (rotateTimer > 0)
-        {
-            rotateTimer -= 0.01;
-        }
-        if (downTimer > 0)
-        {
-            downTimer -= 0.01;
-        }
+        if (movementTimer > 0) movementTimer -= 0.01;
+        if (restartTimer > 0) restartTimer -= 0.01;
+        if (rotateTimer > 0) rotateTimer -= 0.01;
+        if (downTimer > 0) downTimer -= 0.01;
     }
 #endif
+
 
     /// <summary>
     /// Oma aliohjelma perusohjaukselle, että saan wasd ja nuolinäppäimet helposti
@@ -239,21 +215,24 @@ public class TippuvatPalikatAndroidGame : Game
         {
             //Tulevat palikat
 #if ANDROID
-            DrawArray(canvas, upcomingArray, new Vector(Screen.Width - size * 7, Screen.Height - size * 8));
+            DrawArray(canvas, upcomingArray, new Vector(Screen.Width / 2, Screen.Height / 2), false, 2);
 #endif
 #if WINDOWS
             DrawArray(canvas, upcomingArray, new Vector(size * (staticArray.GetLength(0) + 1), size * (staticArray.GetLength(1) - (upcomingArray.GetLength(1) * 2))));
             DrawArray(canvas, holdArray, new Vector(-size * (holdArray.GetLength(0) + 1), size * (staticArray.GetLength(1) - (holdArray.GetLength(1) * 2))));
 #endif
         }
-
         //Pistelaskuri (halusin tyylikkäästi skaalautuvan, siksi oma eikä joku valmis tekstipohjainen)
-        canvas.BrushColor = NumberToColor(0);
         string scoreText = score.ToString();
 
         for (int i = 0; i < scoreText.Length; i++)
+            DrawTextWithBackground(canvas, numberFont[scoreText[i] - 48], 5, 3, new Vector(-Screen.Width / 2, Screen.Height / 2 - 3 * size), i);
+
+        if (lost)
         {
-            DrawNumber(canvas, scoreText[i] - 48, i);
+            double yPos = Screen.Height / 2 - 6 * size;
+            DrawTextWithBackground(canvas, restartText, 5, 27, new Vector(-28 * size / 4, yPos));
+            DrawTextWithBackground(canvas, numberFont[automaticRestartTime], 5, 3, new Vector(-4 * size / 4, yPos - 3 * size));
         }
 
         base.Paint(canvas);
@@ -267,31 +246,27 @@ public class TippuvatPalikatAndroidGame : Game
     /// <param name="array">Mikä piirretään</param>
     /// <param name="position">Kohta josta aloitetaan piirtämään</param>
     /// <param name="drawBackground">Taustaväri</param>
-    private void DrawArray(Canvas canvas, int[,] array, Vector position, bool drawBackground = false)
+    private void DrawArray(Canvas canvas, int[,] array, Vector position, bool drawBackground = false, int sizeDivider = 1)
     {
-        int xOffset = size * -5;
-        int yOffset = size * -12;
+        int xOffset = size * -5 / sizeDivider;
+        int yOffset = size * -12 / sizeDivider;
 
         for (int x = 0; x < array.GetLength(0); x++)
-        {
             for (int y = 0; y < array.GetLength(1); y++)
             {
                 canvas.BrushColor = NumberToColor(array[x, y]);
 
-                int scaledX = x * size;
-                int scaledY = y * size;
+                int scaledX = x * size / sizeDivider;
+                int scaledY = y * size / sizeDivider;
 
-                if (array[x, y] != 0) //piirtää kuutiot
-                {
-                    DrawCube(canvas, new Vector(scaledX + (int)position.X + xOffset, scaledY + (int)position.Y + yOffset));
-                }
+                int scaledSize = 0;
+                if (sizeDivider != 1) scaledSize = size / (sizeDivider * 2);
+
+                if (array[x, y] != 0) DrawCube(canvas, new Vector(scaledX + (int)position.X + xOffset, scaledY + (int)position.Y + yOffset), scaledSize);
 
                 if (drawBackground)
-                {
                     if (y < 20 || array[x, y] != 0)
-                    {
                         if (array[x, y] == 0) //piirtää taustalle ruudukon
-                        {
                             if (!IsAnythingAbove(new Vector(x, y), dynamicArray) || IsAnythingAbove(new Vector(x, y), staticArray))
                             {
                                 canvas.BrushColor = NumberToColor(8);
@@ -299,11 +274,7 @@ public class TippuvatPalikatAndroidGame : Game
                                 canvas.BrushColor = backgroundColor;
                                 DrawCube(canvas, new Vector(scaledX + xOffset, scaledY + yOffset), 1);
                             }
-                        }
-                    }
-                }
             }
-        }
     }
 
 
@@ -316,37 +287,47 @@ public class TippuvatPalikatAndroidGame : Game
     /// <param name="offset">Kutistaa kuution kokoa</param>
     private void DrawCube(Canvas canvas, Vector position, int offset = 0)
     {
-        for (int i = 0 + offset; i < size - offset; i++)
-        {
-            canvas.DrawLine(position.X + i, position.Y + offset, position.X + i, position.Y + size - offset);
-        }
+        for (int i = 0 + offset; i < size - offset; i++) canvas.DrawLine(position.X + i, position.Y + offset, position.X + i, position.Y + size - offset);
     }
 
 
     /// <summary>
-    /// Piirtää numeron, pisteenlaskua varten
-    /// Halusin nätisti skaalatuvan ja tyylikään pistelaskurin, siksi otin tämän.
+    /// Piirtää merkkijonosta jonkinlaisen merkin annettujen parametrien pohjalta
     /// </summary>
     /// <param name="canvas">Minne piirretään</param>
-    /// <param name="n">Mikä numero piirretään</param>
-    /// <param name="xOffset">Monesko numero vasemmalta laskien piirretään</param>
-    private void DrawNumber(Canvas canvas, int n, int xOffset = 0)
+    /// <param name="s">merkkijono johon tallennettu jotain tekstiä</param>
+    /// <param name="height">tekstin korkeus (laatikoissa)</param>
+    /// <param name="width">tekstin leveys (laatikoissa)</param>
+    /// <param name="start">Mihin kohtaan ruutua teksti piirretään</param>
+    /// <param name="xOffset">Käytetään numeroja piirrettessä, käytännössä monesko numero numero on</param>
+    /// <param name="sizeDivider">voidaan muuttaa tekstin "lihavuutta", isompi arvo tekee lihavemman tekstin</param>
+    private void DrawText(Canvas canvas, string s, int height, int width, Vector start, int xOffset = 0, int sizeDivider = 4)
     {
-        string s = numberFont[n];
-
         int index = 0;
 
-        for (int y = 0; y < 5; y++)
-        {
-            for (int x = 0; x < 3; x++)
+        for (int y = height - 1; y >= 0; y--)
+            for (int x = 0; x < width; x++)
             {
-                if (s[index] == '1')
-                {
-                    DrawCube(canvas, new Vector(x * size / 2 - (int)(Screen.Width / 2) + size * 2 * xOffset, y * size / 2 + (int)(Screen.Height / 2) - size * 3), size / 4);
-                }
+                if (s[index] == '1') DrawCube(canvas, start + new Vector(x * size / 2 + size * 2 * xOffset, y * size / 2), size / sizeDivider);
                 index++;
             }
-        }
+    }
+
+
+    /// <summary>
+    /// Sama kuin DrawText, mutta piirtää mustat ääriviivat
+    /// </summary>
+    /// <param name="canvas">Minne piirretään</param>
+    /// <param name="s">Merkkijono jossa tekstiä</param>
+    /// <param name="height">tekstin korkeus</param>
+    /// <param name="width">tekstin leveys</param>
+    /// <param name="start">Mihin kohtaan ruutua teksti piirretään</param>
+    private void DrawTextWithBackground(Canvas canvas, string s, int height, int width, Vector start, int xOffset = 0)
+    {
+        canvas.BrushColor = Color.Black;
+        DrawText(canvas, s, height, width, start, xOffset, 5);
+        canvas.BrushColor = Color.White;
+        DrawText(canvas, s, height, width, start, xOffset, 4);
     }
 
 
@@ -385,17 +366,33 @@ public class TippuvatPalikatAndroidGame : Game
 
 
     /// <summary>
+    /// Timeri kutsuu tätä kerran sekunnissa pelaajan hävittyä pelin
+    /// Käynnistää pelin automaattisesti uudelleen
+    /// </summary>
+    private void AutomaticRestart()
+    {
+        if (lost)
+        {
+            if (automaticRestartTime > 1)
+                automaticRestartTime -= 1;
+            else
+                Restart();
+
+            tiktokSound[0].Play();
+        }
+    }
+
+
+    /// <summary>
     /// Liikuttaa dynamicarrayta yhdellä alas ja antaa pisteitä täysistä riveistä
     /// </summary>
     /// <returns>Tosi jos rivi tuli täyteen</returns>
     private bool MoveDown()
     {
-        if (CanMoveWholeArray(dynamicArray, staticArray))
-        {
-            dynamicArray = MoveWholeArrayDown(dynamicArray);
-        }
+        if (CanMoveWholeArray(dynamicArray, staticArray)) dynamicArray = MoveWholeArrayDown(dynamicArray);
         else
         {
+            downSound.Play();
             staticArray = CombineArrays(staticArray, dynamicArray);
             CheckForFullLines();
             SetArrayToZero(dynamicArray);
@@ -412,16 +409,12 @@ public class TippuvatPalikatAndroidGame : Game
     /// </summary>
     private void Tiktok()
     {
+        tik = !tik;
+
         if (tik)
-        {
             tiktokSound[0].Play();
-            tik = false;
-        }
         else
-        {
             tiktokSound[1].Play();
-            tik = true;
-        }
     }
 
 
@@ -435,9 +428,7 @@ public class TippuvatPalikatAndroidGame : Game
             Tiktok();
             bool stop = MoveDown();
             if (stop)
-            {
                 freefall = false;
-            }
         }
     }
 
@@ -451,10 +442,7 @@ public class TippuvatPalikatAndroidGame : Game
     {
         Color[] colors = { Color.White, Color.Cyan, Color.Yellow, Color.Purple, Color.Green, Color.Blue, Color.Red, Color.Orange, Color.DarkGray };
 
-        if (n == 8 && !lost)
-        {
-            return colors[currentShape + 1];
-        }
+        if (n == 8 && !lost) return colors[currentShape + 1];
 
         return colors[n];
     }
@@ -472,12 +460,8 @@ public class TippuvatPalikatAndroidGame : Game
         int[,] array = new int[rowLength, rowLength];
 
         for (int x = 0; x < array.GetLength(0); x++)
-        {
             for (int y = 0; y < array.GetLength(1); y++)
-            {
                 array[x, y] = s[y * rowLength + x] - 48; //array[x, y] = int.Parse(Char.ToString(s[y * size + x])); //Toimis kans mutta mitä turhia
-            }
-        }
 
         return array;
     }
@@ -492,16 +476,9 @@ public class TippuvatPalikatAndroidGame : Game
     {
         Vector start = -Vector.One;
 
-        for (int x = 0; x < array.GetLength(0); x++)
-        {
-            for (int y = 0; y < array.GetLength(1); y++)
-            {
+        for (int x = 0; x < array.GetLength(0); x++) for (int y = 0; y < array.GetLength(1); y++)
                 if (array[x, y] != 0)
-                {
                     return new Vector(x, y);
-                }
-            }
-        }
 
         return start;
     }
@@ -519,43 +496,34 @@ public class TippuvatPalikatAndroidGame : Game
         //Kopiodaan big -> final
         int[,] final = new int[big.GetLength(0), big.GetLength(1)];
 
-        for (int x = 0; x < small.GetLength(0); x++)
-        {
-            for (int y = 0; y < small.GetLength(1); y++)
-            {
+        for (int x = 0; x < small.GetLength(0); x++) for (int y = 0; y < small.GetLength(1); y++)
                 final[x, y] = big[x, y];
-            }
-        }
 
         //Vältetään index out of bounds virheet (a godsend)
-        if (position.X + small.GetLength(0) > big.GetLength(0))
-        {
-            position.X = big.GetLength(0) - small.GetLength(0);
-        }
-
-        if (position.Y + small.GetLength(1) > big.GetLength(1))
-        {
-            position.Y = big.GetLength(1) - small.GetLength(1);
-        }
-        if (position.X < 0)
-        {
-            position.X = 0;
-        }
-        if (position.Y < 0)
-        {
-            position.Y = 0;
-        }
+        if (position.X + small.GetLength(0) > big.GetLength(0)) position.X = big.GetLength(0) - small.GetLength(0);
+        if (position.Y + small.GetLength(1) > big.GetLength(1)) position.Y = big.GetLength(1) - small.GetLength(1);
+        if (position.X < 0) position.X = 0;
+        if (position.Y < 0) position.Y = 0;
 
         //Liimataan
-        for (int x = 0; x < small.GetLength(0); x++)
-        {
-            for (int y = 0; y < small.GetLength(1); y++)
-            {
+        for (int x = 0; x < small.GetLength(0); x++) for (int y = 0; y < small.GetLength(1); y++)
                 final[(int)position.X + x, (int)position.Y + y] = small[x, y];
-            }
-        }
 
         return final;
+    }
+
+
+    /// <summary>
+    /// Pysäyttää pelin hienojen ääniefektien kera
+    /// </summary>
+    private void Pause()
+    {
+        IsPaused = !IsPaused;
+
+        if (IsPaused)
+            pauseSound[0].Play();
+        else
+            pauseSound[1].Play();
     }
 
 
@@ -564,7 +532,11 @@ public class TippuvatPalikatAndroidGame : Game
     /// </summary>
     private void Restart()
     {
+        IsPaused = false;
+        automaticRestartTimer.Stop();
         restartSound.Play();
+        updateTimer.Stop();
+        updateTimer.Start();
         lost = false;
         SetArrayToZero(dynamicArray);
         SetArrayToZero(staticArray);
@@ -575,6 +547,7 @@ public class TippuvatPalikatAndroidGame : Game
         heldShape = -1;
 #endif
         score = 0;
+        automaticRestartTime = automaticRestartTimeReset;
         SpawnNextShape();
     }
 
@@ -629,20 +602,9 @@ public class TippuvatPalikatAndroidGame : Game
     private void SlamDown()
     {
         if (!lost)
-        {
             if (FindStartPosition(dynamicArray) != -Vector.One) //pitää olla jotakin mitä liikuttaa alas tai jäädään jumiin
-            {
-                downSound.Play();
                 while (true)
-                {
-                    bool stop = MoveDown();
-                    if (stop)
-                    {
-                        break;
-                    }
-                }
-            }
-        }
+                    if (MoveDown()) break;
     }
 
 
@@ -652,7 +614,6 @@ public class TippuvatPalikatAndroidGame : Game
     private void Rotate()
     {
         if (!lost)
-        {
             if ((IsArrayEmpty(dynamicArray) || CanRotate(dynamicArray, staticArray, currentRotation, currentShape, shapeStrings, shapeArraySize, shapeOffsets)) && currentShape != 1)
             {
                 var result = RotateInArray(dynamicArray, currentRotation, currentShape, shapeStrings, shapeArraySize, shapeOffsets);
@@ -660,7 +621,6 @@ public class TippuvatPalikatAndroidGame : Game
                 currentRotation = result.currentRotation;
                 rotateSound.Play();
             }
-        }
     }
 
 
@@ -671,17 +631,14 @@ public class TippuvatPalikatAndroidGame : Game
     /// <returns>Tosi, jos on tyhjä, epätosi jos ei</returns>
     public static bool IsArrayEmpty(int[,] array)
     {
+        bool isEmpty = true;
+
         for (int x = 0; x < array.GetLength(0); x++)
-        {
             for (int y = 0; y < array.GetLength(1); y++)
-            {
                 if (array[x, y] != 0)
-                {
-                    return false;
-                }
-            }
-        }
-        return true;
+                    isEmpty = false;
+
+        return isEmpty;
     }
 
 
@@ -744,21 +701,13 @@ public class TippuvatPalikatAndroidGame : Game
 
             SetArrayToZero(rotationArray);
             currentRotation++;
-            if (currentRotation >= shapeStrings[currentShape].Length)
-            {
-                currentRotation = 0;
-            }
-            rotationArray = AddArrayToArrayAtPosition(StringTo2DArray(shapeStrings[currentShape][currentRotation], shapeArraySize[currentShape]), rotationArray, new Vector((int)pos.X, (int)pos.Y));
 
+            if (currentRotation >= shapeStrings[currentShape].Length) currentRotation = 0;
+
+            rotationArray = AddArrayToArrayAtPosition(StringTo2DArray(shapeStrings[currentShape][currentRotation], shapeArraySize[currentShape]), rotationArray, new Vector((int)pos.X, (int)pos.Y));
         }
 
-        var result = new RotationResult
-        {
-            array = rotationArray,
-            currentRotation = currentRotation
-        };
-
-        return result;
+        return new RotationResult { array = rotationArray, currentRotation = currentRotation };
     }
 
 
@@ -770,13 +719,12 @@ public class TippuvatPalikatAndroidGame : Game
     /// <returns>Tosi, jos on kohta jossa arvoja menee päällekkäin</returns>
     public static bool ArraysOverlap(int[,] a, int[,] b)
     {
-        bool overlap = false;
         for (int x = 0; x < a.GetLength(0); x++)
             for (int y = 0; y < a.GetLength(1); y++)
                 if (a[x, y] != 0)
                     if (b[x, y] != 0)
-                        overlap = true;
-        return overlap;
+                        return true;
+        return false;
     }
 
 
@@ -789,19 +737,13 @@ public class TippuvatPalikatAndroidGame : Game
         {
             leftSound.Play();
             for (int x = 0; x < dynamicArray.GetLength(0); x++)
-            {
                 for (int y = 0; y < dynamicArray.GetLength(1); y++)
                 {
                     if (x == dynamicArray.GetLength(0) - 1)
-                    {
                         dynamicArray[x, y] = 0;
-                    }
                     else
-                    {
                         dynamicArray[x, y] = dynamicArray[x + 1, y];
-                    }
                 }
-            }
         }
     }
 
@@ -814,20 +756,14 @@ public class TippuvatPalikatAndroidGame : Game
         if (CanMoveHorizontally(staticArray, dynamicArray, 9, 1) && !lost)
         {
             rightSound.Play();
-            for (int x = dynamicArray.GetLength(0) - 1; x >= 0; x--)
-            {
-                for (int y = 0; y < dynamicArray.GetLength(1); y++)
+
+            for (int x = dynamicArray.GetLength(0) - 1; x >= 0; x--) for (int y = 0; y < dynamicArray.GetLength(1); y++)
                 {
                     if (x == 0)
-                    {
                         dynamicArray[x, y] = 0;
-                    }
                     else
-                    {
                         dynamicArray[x, y] = dynamicArray[x - 1, y];
-                    }
                 }
-            }
         }
     }
 
@@ -844,26 +780,14 @@ public class TippuvatPalikatAndroidGame : Game
     {
         //ei mennä reunojen yli
         for (int i = 0; i < dynamicArray.GetLength(1); i++)
-        {
             if (dynamicArray[startX, i] != 0)
-            {
                 return false;
-            }
-        }
 
         for (int x = 0; x < dynamicArray.GetLength(0); x++)
-        {
             for (int y = 0; y < dynamicArray.GetLength(1); y++)
-            {
                 if (dynamicArray[x, y] != 0)
-                {
                     if (staticArray[x + direction, y] != 0)
-                    {
                         return false;
-                    }
-                }
-            }
-        }
 
         return true;
     }
@@ -878,18 +802,10 @@ public class TippuvatPalikatAndroidGame : Game
     public static bool CanMoveWholeArray(int[,] dynamicArray, int[,] staticArray)
     {
         for (int x = 0; x < dynamicArray.GetLength(0); x++)
-        {
             for (int y = 0; y < dynamicArray.GetLength(1); y++)
-            {
                 if (dynamicArray[x, y] != 0)
-                {
                     if (y == 0 || staticArray[x, y - 1] != 0)
-                    {
                         return false;
-                    }
-                }
-            }
-        }
 
         return true;
     }
@@ -905,16 +821,11 @@ public class TippuvatPalikatAndroidGame : Game
         int[,] newArray = new int[dynamicArray.GetLength(0), dynamicArray.GetLength(1)];
 
         for (int x = 0; x < dynamicArray.GetLength(0); x++)
-        {
             for (int y = 1; y < dynamicArray.GetLength(1); y++)
             {
                 newArray[x, y] = 0;
-                if (dynamicArray[x, y] != 0)
-                {
-                    newArray[x, y - 1] = dynamicArray[x, y];
-                }
+                if (dynamicArray[x, y] != 0) newArray[x, y - 1] = dynamicArray[x, y];
             }
-        }
 
         return newArray;
     }
@@ -929,20 +840,15 @@ public class TippuvatPalikatAndroidGame : Game
     public static int[,] CombineArrays(int[,] a, int[,] b)
     {
         int[,] c = new int[a.GetLength(0), a.GetLength(1)];
+
         for (int x = 0; x < a.GetLength(0); x++)
-        {
             for (int y = 0; y < a.GetLength(1); y++)
             {
                 if (a[x, y] != 0)
-                {
                     c[x, y] = a[x, y];
-                }
                 if (b[x, y] != 0)
-                {
                     c[x, y] = b[x, y];
-                }
             }
-        }
 
         return c;
     }
@@ -959,14 +865,10 @@ public class TippuvatPalikatAndroidGame : Game
         {
             bool full = true;
             for (int x = 0; x < staticArray.GetLength(0); x++)
-            {
-                if (staticArray[x, y] == 0)
-                {
-                    full = false;
-                }
-            }
+                if (staticArray[x, y] == 0) full = false;
             if (full)
             {
+                destroySound.Play();
                 DestroyLine(y);
                 score++; //sait pisteen
 
@@ -974,11 +876,7 @@ public class TippuvatPalikatAndroidGame : Game
             }
         }
 
-        for (int i = 0; i < linesToRemove.Count; i++)
-        {
-            destroySound.Play();
-            MoveDownFromY(linesToRemove[i] - i);
-        }
+        for (int i = 0; i < linesToRemove.Count; i++) MoveDownFromY(linesToRemove[i] - i);
     }
 
 
@@ -989,9 +887,7 @@ public class TippuvatPalikatAndroidGame : Game
     private void DestroyLine(int y)
     {
         for (int x = 0; x < staticArray.GetLength(0); x++)
-        {
             staticArray[x, y] = 0;
-        }
     }
 
 
@@ -1002,12 +898,8 @@ public class TippuvatPalikatAndroidGame : Game
     private void MoveDownFromY(int startY)
     {
         for (int x = 0; x < staticArray.GetLength(0); x++)
-        {
             for (int y = startY; y < staticArray.GetLength(1) - 1; y++)
-            {
                 staticArray[x, y] = staticArray[x, y + 1];
-            }
-        }
     }
 
 
@@ -1019,33 +911,19 @@ public class TippuvatPalikatAndroidGame : Game
         bool didLose = false;
 
         for (int i = 0; i < 10; i++)
-        {
             if (staticArray[i, 20] != 0)
-            {
                 didLose = true;
-            }
-        }
-        if (!didLose)
+
+        if (didLose) //hävisit pelin
         {
-            spawn = true;
-            currentRotation = 0;
+            loseSound.Play();
+            lost = true;
+            automaticRestartTimer.Start();
         }
         else
         {
-            loseSound.Play();
-            lost = true; //hävisit pelin
-            MessageDisplay.Add("");
-            MessageDisplay.Add("");
-            MessageDisplay.Add("");
-            MessageDisplay.Add("");
-            MessageDisplay.Add("Hävisit pelin :-(");
-
-#if ANDROID
-            MessageDisplay.Add("Kosketa ruudun yläreunaa aloittaaksesi alusta!");
-#endif
-#if WINDOWS
-            MessageDisplay.Add("Paina R aloittaaksesi alusta!");
-#endif
+            spawn = true;
+            currentRotation = 0;
         }
     }
 
@@ -1054,15 +932,11 @@ public class TippuvatPalikatAndroidGame : Game
     /// Täyttää annetun taulukon nollilla
     /// </summary>
     /// <param name="array">muokattava taulukko</param>
-    public static void SetArrayToZero(int[,] array)
+    public static void SetArrayToZero(int[,] array, int number = 0)
     {
         for (int x = 0; x < array.GetLength(0); x++)
-        {
             for (int y = 0; y < array.GetLength(1); y++)
-            {
-                array[x, y] = 0;
-            }
-        }
+                array[x, y] = number;
     }
 
 
@@ -1073,10 +947,7 @@ public class TippuvatPalikatAndroidGame : Game
     /// <param name="updateUpcomingArray">Päivitetäänkö tuleva palikka</param>
     private void SpawnNextShape(int specificShape = 0, bool updateUpcomingArray = true)
     {
-        if (specificShape != 0)
-        {
-            currentShape = specificShape;
-        }
+        if (specificShape != 0) currentShape = specificShape;
 
         if (updateUpcomingArray)
         {
@@ -1108,13 +979,10 @@ public class TippuvatPalikatAndroidGame : Game
     private void SpawnSpecificShape(string shape = "")
     {
         currentRotation = 0;
+
         for (int i = 0; i < shapes.Length; i++)
-        {
             if (shape == shapes[i])
-            {
                 dynamicArray = AddArrayToArrayAtPosition(StringTo2DArray(shapeStrings[i][0], shapeArraySize[i]), dynamicArray, SpawnStartPos(shapeStartPositons[i]));
-            }
-        }
     }
 
 
@@ -1134,6 +1002,8 @@ public class TippuvatPalikatAndroidGame : Game
     /// </summary>
     private void SetupGame()
     {
+        size = (int)Screen.Height / 30;
+
         string[] stick = { "0010001000100010", "0000000011110000" };
         string[] block = { "2222" };
         string[] t = { "000333030", "030033030", "030333000", "030330030" };
@@ -1156,13 +1026,11 @@ public class TippuvatPalikatAndroidGame : Game
         Level.BackgroundColor = backgroundColor;
 
         if (forcedShape == -1)
-        {
             upcomingShape = RandomGen.NextInt(shapes.Length);
-        }
         else
-        {
             upcomingShape = forcedShape;
-        }
+
+        automaticRestartTimeReset = automaticRestartTime;
     }
 
 
@@ -1171,9 +1039,13 @@ public class TippuvatPalikatAndroidGame : Game
     /// </summary>
     private void SetupLoops()
     {
-        Timer updateTimer = new Timer { Interval = 0.3 };
+        updateTimer = new Timer { Interval = 0.3 };
         updateTimer.Timeout += Update;
         updateTimer.Start();
+
+        automaticRestartTimer = new Timer { Interval = 1 };
+        automaticRestartTimer.Timeout += AutomaticRestart;
+        automaticRestartTimer.Start();
 
         Timer freefallTimer = new Timer { Interval = 0.03 };
         freefallTimer.Timeout += FreefallLoop;
@@ -1205,12 +1077,9 @@ public class TippuvatPalikatAndroidGame : Game
     public static bool IsAnythingAbove(Vector position, int[,] array)
     {
         for (int y = (int)position.Y; y < array.GetLength(1); y++)
-        {
             if (array[(int)position.X, y] != 0)
-            {
                 return true;
-            }
-        }
+
         return false;
     }
 }

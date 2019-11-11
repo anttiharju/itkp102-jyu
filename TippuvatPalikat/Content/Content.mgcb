@@ -14,6 +14,18 @@
 
 #---------------------------------- Content ---------------------------------#
 
+#begin holdbreath.wav
+/importer:WavImporter
+/processor:SoundEffectProcessor
+/processorParam:Quality=Best
+/build:holdbreath.wav
+
+#begin letitgo.wav
+/importer:WavImporter
+/processor:SoundEffectProcessor
+/processorParam:Quality=Best
+/build:letitgo.wav
+
 #begin padam.wav
 /importer:WavImporter
 /processor:SoundEffectProcessor
