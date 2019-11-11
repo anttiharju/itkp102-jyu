@@ -17,6 +17,8 @@ Paljon pikkusäätöä en muista tarkasti kaikkea
 
 Korjasin android sovelluksen nimen
 
+Versiohallinnan apk päivitetty ajantasalle
+
 
 10.11.2019
 Uudelleenjärjestelyä, vain yksi solution jossa windows ja android projektit
