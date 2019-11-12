@@ -1,6 +1,8 @@
 12.11.2019
 Viimesiä viilauksia
 
+Hiiri piilotettu
+
 
 11.11.2019
 Automaattinen restart (ohjaaja halusi jotain tapahtuvan kun pelin häviää niin nyt siihen tulee laskuri joka mentyään nollaan aloittaa pelin alusta)
