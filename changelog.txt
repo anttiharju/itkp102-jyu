@@ -1,3 +1,7 @@
+12.11.2019
+Viimesiä viilauksia
+
+
 11.11.2019
 Automaattinen restart (ohjaaja halusi jotain tapahtuvan kun pelin häviää niin nyt siihen tulee laskuri joka mentyään nollaan aloittaa pelin alusta)
     Tästä tuli itse asiassa aika cool ja vieläpä ääniefektit apuna
