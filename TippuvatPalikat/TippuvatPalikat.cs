@@ -81,6 +81,7 @@ public class TippuvatPalikatAndroidGame : Game
     {
 #if WINDOWS
         IsFullScreen = true;
+        Mouse.IsCursorVisible = false;
 #endif
         SetupGame();
         SetupArrays();
