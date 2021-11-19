@@ -1,3 +1,11 @@
+# TODO
+- Ohjeita pelaajalle pelin uudelleen aloitukseen
+- Dokumentaatio android aliohjelmille myös
+- Muuta android ohjausta, (gesturehomma, tap to rotate)
+- <https://tim.jyu.fi/view/kurssit/tie/ohj1/materiaali/koodauskaytanteet>
+- Tiedossa oleva bugi: pausetettuna voi liikutella palikkaa sivusuunnassa
+
+
 23.11.2019
 Poistettu Tetris kansio
 
